@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import inquirer from 'inquirer';
-import chalk from 'chalk';
-import { fetchGist, parseEnvContent } from './gist';
-import { writeEnvFile } from './env';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 // Minimal .env loader for .gistenv
 function loadDotEnvFile() {
@@ -34,6 +29,30 @@ function loadDotEnvFile() {
   }
 }
 loadDotEnvFile();
+
+// Minimal color helper
+const colors = {
+  reset: "\x1b[0m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  white: "\x1b[37m",
+  cyanBright: "\x1b[96m",
+  greenBright: "\x1b[92m",
+  yellowBright: "\x1b[93m",
+  redBright: "\x1b[91m",
+  whiteBright: "\x1b[97m",
+  bold: "\x1b[1m"
+};
+function color(text: string, code: string) {
+  return code + text + colors.reset;
+}
+
+import { Command } from 'commander';
+import inquirer from 'inquirer';
+import { fetchGist, parseEnvContent } from './gist';
+import { writeEnvFile } from './env';
 
 const program = new Command();
 
@@ -63,13 +82,13 @@ function defineSectionsCommand() {
         const allVariables = parseEnvContent(gistContent);
         const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
         if (sectionNames.length === 0) {
-          console.log(chalk.yellowBright('No sections found in your Gist.'));
+          console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
-        console.log(chalk.whiteBright('\nAvailable sections:'));
-        sectionNames.forEach(s => console.log(chalk.cyanBright('- ' + s)));
+        console.log(color('\nAvailable sections:', colors.whiteBright));
+        sectionNames.forEach(s => console.log(color('- ' + s, colors.cyanBright)));
       } catch (error) {
-        console.error(chalk.redBright(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }
     });
 }
@@ -84,20 +103,20 @@ function defineCopySectionCommand() {
         const allVariables = parseEnvContent(gistContent);
         const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
         if (sectionNames.length === 0) {
-          console.log(chalk.yellowBright('No sections found in your Gist.'));
+          console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
         const { selectedSection, mode, outputFile } = await inquirer.prompt([
           {
             type: 'list',
             name: 'selectedSection',
-            message: chalk.whiteBright('Select section to copy:'),
+            message: color('Select section to copy:', colors.whiteBright),
             choices: sectionNames
           },
           {
             type: 'list',
             name: 'mode',
-            message: chalk.whiteBright('How to add variables:'),
+            message: color('How to add variables:', colors.whiteBright),
             choices: [
               { name: 'Append to existing .env file', value: 'append' },
               { name: 'Replace existing .env file', value: 'replace' }
@@ -106,19 +125,19 @@ function defineCopySectionCommand() {
           {
             type: 'input',
             name: 'outputFile',
-            message: chalk.whiteBright('Output file:'),
+            message: color('Output file:', colors.whiteBright),
             default: '.env'
           }
         ]);
         const sectionVariables = allVariables.filter(v => v.section === selectedSection);
         if (sectionVariables.length === 0) {
-          console.log(chalk.yellowBright(`No variables found in section "${selectedSection}"`));
+          console.log(color(`No variables found in section "${selectedSection}"`, colors.yellowBright));
           return;
         }
         writeEnvFile(sectionVariables, outputFile, mode);
-        console.log(chalk.greenBright(`✓ Variables from section "${selectedSection}" copied to ${outputFile}!`));
+        console.log(color(`✓ Variables from section "${selectedSection}" copied to ${outputFile}!`, colors.greenBright));
       } catch (error) {
-        console.error(chalk.redBright(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }
     });
 }
@@ -133,13 +152,13 @@ function defineKeysCommand() {
         const allVariables = parseEnvContent(gistContent);
         const keys = Array.from(new Set(allVariables.map(v => v.key)));
         if (keys.length === 0) {
-          console.log(chalk.yellowBright('No keys found in your Gist.'));
+          console.log(color('No keys found in your Gist.', colors.yellowBright));
           return;
         }
-        console.log(chalk.whiteBright('\nAvailable keys:'));
-        keys.forEach(k => console.log(chalk.greenBright('- ' + k)));
+        console.log(color('\nAvailable keys:', colors.whiteBright));
+        keys.forEach(k => console.log(color('- ' + k, colors.greenBright)));
       } catch (error) {
-        console.error(chalk.redBright(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }
     });
 }
@@ -154,21 +173,21 @@ function defineCopyKeysCommand() {
         const allVariables = parseEnvContent(gistContent);
         const keys = Array.from(new Set(allVariables.map(v => v.key)));
         if (keys.length === 0) {
-          console.log(chalk.yellowBright('No keys found in your Gist.'));
+          console.log(color('No keys found in your Gist.', colors.yellowBright));
           return;
         }
         const { selectedKeys, mode, outputFile } = await inquirer.prompt([
           {
             type: 'checkbox',
             name: 'selectedKeys',
-            message: chalk.whiteBright('Select keys to copy:'),
+            message: color('Select keys to copy:', colors.whiteBright),
             choices: keys,
             validate: (input: string[]) => input.length > 0 ? true : 'Select at least one key'
           },
           {
             type: 'list',
             name: 'mode',
-            message: chalk.whiteBright('How to add variables:'),
+            message: color('How to add variables:', colors.whiteBright),
             choices: [
               { name: 'Append to existing .env file', value: 'append' },
               { name: 'Replace existing .env file', value: 'replace' }
@@ -177,15 +196,15 @@ function defineCopyKeysCommand() {
           {
             type: 'input',
             name: 'outputFile',
-            message: chalk.whiteBright('Output file:'),
+            message: color('Output file:', colors.whiteBright),
             default: '.env'
           }
         ]);
         const selectedVariables = allVariables.filter(v => selectedKeys.includes(v.key));
         writeEnvFile(selectedVariables, outputFile, mode);
-        console.log(chalk.greenBright(`✓ Selected keys copied to ${outputFile}!`));
+        console.log(color(`✓ Selected keys copied to ${outputFile}!`, colors.greenBright));
       } catch (error) {
-        console.error(chalk.redBright(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }
     });
 }
@@ -198,17 +217,17 @@ function defineListCommand() {
       try {
         const gistContent = await fetchGist();
         const variables = parseEnvContent(gistContent);
-        console.log(chalk.whiteBright('\nAvailable environment variables:'));
+        console.log(color('\nAvailable environment variables:', colors.whiteBright));
         let currentSection: string | undefined;
         variables.forEach(v => {
           if (v.section !== currentSection) {
             currentSection = v.section;
-            console.log(chalk.cyanBright(`\n[${currentSection || 'No Section'}]`));
+            console.log(color(`\n[${currentSection || 'No Section'}]`, colors.cyanBright));
           }
-          console.log(`${chalk.greenBright(v.key)} = ${chalk.whiteBright(v.value)}`);
+          console.log(color(v.key, colors.greenBright) + ' = ' + color(v.value, colors.whiteBright));
         });
       } catch (error) {
-        console.error(chalk.redBright(`Error: ${error instanceof Error ? error.message : String(error)}`));
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }
     });
 }

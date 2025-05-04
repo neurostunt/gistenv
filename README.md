@@ -35,9 +35,7 @@ Gists containing secrets should always be **private**. You need to provide a Git
 
 - Instantly copy environment variables from a GitHub Gist
 - Copy all variables from a section, or select specific keys
-- No local config or setup—always live from your Gist
 - Interactive CLI interface
-- Supports private Gists (set your GitHub token if needed)
 
 ## Prerequisites
 

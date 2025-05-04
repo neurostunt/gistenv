@@ -24,7 +24,6 @@
   "author": "neurostunt@gmail.com",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "inquirer": "^8.2.6"
   },
