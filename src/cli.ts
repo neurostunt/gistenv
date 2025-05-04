@@ -71,6 +71,8 @@ defineKeysCommand();
 defineCopyKeysCommand();
 // List all variables grouped by section
 defineListCommand();
+// Copy selected keys from a section to .env
+defineCopySectionKeysCommand();
 
 function defineSectionsCommand() {
   program
@@ -226,6 +228,66 @@ function defineListCommand() {
           }
           console.log(color(v.key, colors.greenBright) + ' = ' + color(v.value, colors.whiteBright));
         });
+      } catch (error) {
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+      }
+    });
+}
+
+function defineCopySectionKeysCommand() {
+  program
+    .command('copy-section-keys')
+    .description('Copy selected keys from a section to .env')
+    .action(async () => {
+      try {
+        const gistContent = await fetchGist();
+        const allVariables = parseEnvContent(gistContent);
+        const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
+        if (sectionNames.length === 0) {
+          console.log(color('No sections found in your Gist.', colors.yellowBright));
+          return;
+        }
+        const { selectedSection } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'selectedSection',
+            message: color('Select section:', colors.whiteBright),
+            choices: sectionNames
+          }
+        ]);
+        const sectionVariables = allVariables.filter(v => v.section === selectedSection);
+        if (sectionVariables.length === 0) {
+          console.log(color(`No variables found in section "${selectedSection}"`, colors.yellowBright));
+          return;
+        }
+        const keys = sectionVariables.map(v => v.key);
+        const { selectedKeys, mode, outputFile } = await inquirer.prompt([
+          {
+            type: 'checkbox',
+            name: 'selectedKeys',
+            message: color('Select keys to copy:', colors.whiteBright),
+            choices: keys,
+            validate: (input: string[]) => input.length > 0 ? true : 'Select at least one key'
+          },
+          {
+            type: 'list',
+            name: 'mode',
+            message: color('How to add variables:', colors.whiteBright),
+            choices: [
+              { name: 'Append to existing .env file', value: 'append' },
+              { name: 'Replace existing .env file', value: 'replace' }
+            ]
+          },
+          {
+            type: 'input',
+            name: 'outputFile',
+            message: color('Output file:', colors.whiteBright),
+            default: '.env'
+          }
+        ]);
+        const selectedVariables = sectionVariables.filter(v => selectedKeys.includes(v.key));
+        writeEnvFile(selectedVariables, outputFile, mode);
+        console.log(color(`✓ Selected keys from section "${selectedSection}" copied to ${outputFile}!`, colors.greenBright));
       } catch (error) {
         console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }

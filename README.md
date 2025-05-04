@@ -100,6 +100,16 @@ gistenv list
 ```
 Shows all variables in your Gist, grouped by section.
 
+### Copy Selected Keys from a Section to .env
+
+```bash
+gistenv copy-section-keys
+```
+- Prompts you to select a section
+- Prompts you to select any keys from that section
+- Prompts for append/replace
+- Prompts for output file (default: `.env`)
+
 ## Example Workflow
 
 1. Store all environment variables in a private GitHub Gist
