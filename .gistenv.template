@@ -1,0 +1,9 @@
+# Copy this file to .gistenv and fill in your values
+# GistEnv CLI will use these for authentication and Gist access
+
+GISTENV_GIST_ID=your_gist_id_here
+GISTENV_GITHUB_TOKEN=your_token_here
+
+# You can also use these alternative variable names for compatibility:
+# GIST_ID=your_gist_id_here
+# GITHUB_TOKEN=your_token_here

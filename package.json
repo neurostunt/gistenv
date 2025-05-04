@@ -1,0 +1,36 @@
+{
+  "name": "gistenv",
+  "version": "0.1.0",
+  "description": "CLI tool to copy environment variables from GitHub Gists to local .env files",
+  "main": "dist/index.js",
+  "bin": {
+    "gistenv": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "env",
+    "environment",
+    "gist",
+    "github"
+  ],
+  "author": "neurostunt@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.6"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^8.2.6",
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3"
+  }
+}
