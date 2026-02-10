@@ -1,127 +1,82 @@
 # GistEnv
 
-A CLI tool to copy environment variables from a GitHub Gist to your local `.env` file. Instantly fetch, select, and copy sections or keys—no config or setup required!
+Upload your project’s `.env-example` to a GitHub Gist as a section, and download any section into a local `.env` file. Sections use the format `# [Production]`, `# [Staging]`, etc.
 
-## Installation
+## Setup (all you need)
 
-```bash
-npm install -g gistenv
+**1. Create a GitHub Gist** with a file named `.env` (or `*.env`), e.g.:
+
+```env
+# [Development]
+API_URL=https://dev.example.com
+DEBUG=true
 ```
 
-## Configuration: Using a .gistenv File
+**2. Add a `.gistenv` file** in your project root or home directory:
 
-You must store your Gist ID and GitHub token in a `.gistenv` file in your project root or home directory.
-
-### Example `.gistenv` file
 ```
 GISTENV_GIST_ID=your_gist_id_here
 GISTENV_GITHUB_TOKEN=your_token_here
 ```
-- `.gistenv` in your project root takes priority over your home directory.
-- You can also use `GIST_ID` and `GITHUB_TOKEN` as variable names for compatibility.
 
-## Authentication for Private Gists
+Use a **private** Gist and a token with **gist** scope. Never commit `.gistenv` or `.env`.
 
-Gists containing secrets should always be **private**. You need to provide a GitHub Personal Access Token with the `gist` scope to access private Gists.
+**That’s it.** No install — run with **npx** (see Commands below).
 
-#### How to Create a GitHub Token
-1. Go to [GitHub Personal Access Tokens](https://github.com/settings/tokens?type=beta)
-2. Click **"Generate new token"**
-3. Give it a name (e.g., `gistenv`)
-4. Select the **`gist`** scope
-5. Generate the token and copy it
+## Commands
 
-## Features
+### Upload — add project env as a section
 
-- Instantly copy environment variables from a GitHub Gist
-- Copy all variables from a section, or select specific keys
-- Interactive CLI interface
-
-## Prerequisites
-
-1. Create a GitHub Gist with your environment variables
-2. Format the Gist as a `.env` file
-3. Use section headers for organization (see below)
-
-### Example Gist Format
-
-```env
-# [Development]
-API_URL=https://dev-api.example.com
-DEBUG=true
-
-# [Production]
-API_URL=https://api.example.com
-DEBUG=false
-
-# [API Keys]
-STRIPE_KEY=sk_test_123456
-MAPBOX_API_KEY=pk.abcdef123456
-```
-
-## Usage
-
-### List All Sections
+From your project directory, upload `.env-example` or `.env.example` (or any file you pass) as a **new section** in the Gist:
 
 ```bash
-gistenv sections
+npx gistenv upload
+# or
+npx gistenv upload path/to/.env-example
 ```
-Shows all available sections in your Gist.
 
-### Copy a Section to .env
+You’ll be prompted for the section name (e.g. `Production`, `Staging`). The file is appended to the Gist under `# [SectionName]`.
+
+### Download — write a section to .env
+
+Download a section from the Gist into your local `.env`:
 
 ```bash
-gistenv copy-section
+npx gistenv download
 ```
-- Prompts you to select a section
-- Prompts for append/replace
-- Prompts for output file (default: `.env`)
 
-### List All Keys
+Choose the section, then choose append or replace. Use `-o` to write to another file:
 
 ```bash
-gistenv keys
+npx gistenv download -o .env.local
 ```
-Shows all available keys in your Gist.
 
-### Copy Selected Keys to .env
+### List sections and variables
 
 ```bash
-gistenv copy-keys
+npx gistenv sections   # section names only
+npx gistenv list       # all variables grouped by section
 ```
-- Prompts you to select any keys
-- Prompts for append/replace
-- Prompts for output file (default: `.env`)
 
-### List All Variables (Grouped by Section)
+## Workflow
 
-```bash
-gistenv list
-```
-Shows all variables in your Gist, grouped by section.
-
-### Copy Selected Keys from a Section to .env
-
-```bash
-gistenv copy-section-keys
-```
-- Prompts you to select a section
-- Prompts you to select any keys from that section
-- Prompts for append/replace
-- Prompts for output file (default: `.env`)
-
-## Example Workflow
-
-1. Store all environment variables in a private GitHub Gist
-2. Add your Gist ID and token to `.gistenv`
-3. Use `gistenv sections` or `gistenv keys` to see what's available
-4. Use `gistenv copy-section` or `gistenv copy-keys` to copy what you need to your local `.env`
+1. In the project: keep a `.env-example` (or `.env.example`) with variable names and placeholders.
+2. Run `npx gistenv upload` to add it to your Gist as a section (e.g. “Production” or “Staging”).
+3. On another machine or repo: add `.gistenv` and run `npx gistenv download` to pull a section into `.env`.
 
 ## Security
 
-- GistEnv reads your GitHub token from your `.gistenv` file (never stores it elsewhere)
-- Use private Gists for sensitive data
-- Never commit your `.env` or `.gistenv` files to version control
+- Store the GitHub token in `.gistenv` only; don’t commit it.
+- Use a **private** Gist for real secrets.
+- Don’t commit `.env` or `.gistenv`.
+
+## Development (testing before npm publish)
+
+```bash
+git clone … && cd gistenv && npm install && npm run build
+npx . download
+# or: npm run gistenv -- download
+```
 
 ## License
 

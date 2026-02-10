@@ -3,12 +3,17 @@
 import fs from 'fs';
 import path from 'path';
 
-// Minimal .env loader for .gistenv
+// Minimal .env loader for .gistenv (cwd, then HOME; or GISTENV_FILE path)
 function loadDotEnvFile() {
+  const explicit = process.env.GISTENV_FILE;
   const localEnvPath = path.resolve(process.cwd(), '.gistenv');
   const homeEnvPath = path.resolve(process.env.HOME || process.env.USERPROFILE || '', '.gistenv');
   let envPath = '';
-  if (fs.existsSync(localEnvPath)) {
+  if (explicit && fs.existsSync(path.resolve(process.cwd(), explicit))) {
+    envPath = path.resolve(process.cwd(), explicit);
+  } else if (explicit && fs.existsSync(explicit)) {
+    envPath = explicit;
+  } else if (fs.existsSync(localEnvPath)) {
     envPath = localEnvPath;
   } else if (fs.existsSync(homeEnvPath)) {
     envPath = homeEnvPath;
@@ -51,37 +56,31 @@ function color(text: string, code: string) {
 
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { fetchGist, parseEnvContent } from './gist';
+import { fetchGist, updateGist, parseEnvContent } from './gist';
 import { writeEnvFile } from './env';
 
 const program = new Command();
 
+const EXAMPLE_FILES = ['.env-example', '.env.example'];
+
 program
   .name('gistenv')
-  .description('CLI tool to copy environment variables from GitHub Gists to local .env files')
+  .description('Upload project .env-example to Gist as a section, or download a section into .env')
   .version('0.1.0');
 
-// List all available sections in the Gist
 defineSectionsCommand();
-// Copy a section to .env
-defineCopySectionCommand();
-// List all available keys in the Gist
-defineKeysCommand();
-// Copy selected keys to .env
-defineCopyKeysCommand();
-// List all variables grouped by section
 defineListCommand();
-// Copy selected keys from a section to .env
-defineCopySectionKeysCommand();
+defineDownloadCommand();
+defineUploadCommand();
 
 function defineSectionsCommand() {
   program
     .command('sections')
-    .description('List all available sections in the Gist')
+    .description('List all sections in the Gist')
     .action(async () => {
       try {
-        const gistContent = await fetchGist();
-        const allVariables = parseEnvContent(gistContent);
+        const { content } = await fetchGist();
+        const allVariables = parseEnvContent(content);
         const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
         if (sectionNames.length === 0) {
           console.log(color('No sections found in your Gist.', colors.yellowBright));
@@ -95,130 +94,14 @@ function defineSectionsCommand() {
     });
 }
 
-function defineCopySectionCommand() {
-  program
-    .command('copy-section')
-    .description('Copy all variables from a section to .env')
-    .action(async () => {
-      try {
-        const gistContent = await fetchGist();
-        const allVariables = parseEnvContent(gistContent);
-        const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
-        if (sectionNames.length === 0) {
-          console.log(color('No sections found in your Gist.', colors.yellowBright));
-          return;
-        }
-        const { selectedSection, mode, outputFile } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'selectedSection',
-            message: color('Select section to copy:', colors.whiteBright),
-            choices: sectionNames
-          },
-          {
-            type: 'list',
-            name: 'mode',
-            message: color('How to add variables:', colors.whiteBright),
-            choices: [
-              { name: 'Append to existing .env file', value: 'append' },
-              { name: 'Replace existing .env file', value: 'replace' }
-            ]
-          },
-          {
-            type: 'input',
-            name: 'outputFile',
-            message: color('Output file:', colors.whiteBright),
-            default: '.env'
-          }
-        ]);
-        const sectionVariables = allVariables.filter(v => v.section === selectedSection);
-        if (sectionVariables.length === 0) {
-          console.log(color(`No variables found in section "${selectedSection}"`, colors.yellowBright));
-          return;
-        }
-        writeEnvFile(sectionVariables, outputFile, mode);
-        console.log(color(`✓ Variables from section "${selectedSection}" copied to ${outputFile}!`, colors.greenBright));
-      } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
-      }
-    });
-}
-
-function defineKeysCommand() {
-  program
-    .command('keys')
-    .description('List all available keys in the Gist')
-    .action(async () => {
-      try {
-        const gistContent = await fetchGist();
-        const allVariables = parseEnvContent(gistContent);
-        const keys = Array.from(new Set(allVariables.map(v => v.key)));
-        if (keys.length === 0) {
-          console.log(color('No keys found in your Gist.', colors.yellowBright));
-          return;
-        }
-        console.log(color('\nAvailable keys:', colors.whiteBright));
-        keys.forEach(k => console.log(color('- ' + k, colors.greenBright)));
-      } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
-      }
-    });
-}
-
-function defineCopyKeysCommand() {
-  program
-    .command('copy-keys')
-    .description('Copy selected keys from the Gist to .env')
-    .action(async () => {
-      try {
-        const gistContent = await fetchGist();
-        const allVariables = parseEnvContent(gistContent);
-        const keys = Array.from(new Set(allVariables.map(v => v.key)));
-        if (keys.length === 0) {
-          console.log(color('No keys found in your Gist.', colors.yellowBright));
-          return;
-        }
-        const { selectedKeys, mode, outputFile } = await inquirer.prompt([
-          {
-            type: 'checkbox',
-            name: 'selectedKeys',
-            message: color('Select keys to copy:', colors.whiteBright),
-            choices: keys,
-            validate: (input: string[]) => input.length > 0 ? true : 'Select at least one key'
-          },
-          {
-            type: 'list',
-            name: 'mode',
-            message: color('How to add variables:', colors.whiteBright),
-            choices: [
-              { name: 'Append to existing .env file', value: 'append' },
-              { name: 'Replace existing .env file', value: 'replace' }
-            ]
-          },
-          {
-            type: 'input',
-            name: 'outputFile',
-            message: color('Output file:', colors.whiteBright),
-            default: '.env'
-          }
-        ]);
-        const selectedVariables = allVariables.filter(v => selectedKeys.includes(v.key));
-        writeEnvFile(selectedVariables, outputFile, mode);
-        console.log(color(`✓ Selected keys copied to ${outputFile}!`, colors.greenBright));
-      } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
-      }
-    });
-}
-
 function defineListCommand() {
   program
     .command('list')
-    .description('List all available variables in the Gist, grouped by section')
+    .description('List all variables in the Gist, grouped by section')
     .action(async () => {
       try {
-        const gistContent = await fetchGist();
-        const variables = parseEnvContent(gistContent);
+        const { content } = await fetchGist();
+        const variables = parseEnvContent(content);
         console.log(color('\nAvailable environment variables:', colors.whiteBright));
         let currentSection: string | undefined;
         variables.forEach(v => {
@@ -234,60 +117,84 @@ function defineListCommand() {
     });
 }
 
-function defineCopySectionKeysCommand() {
+function defineDownloadCommand() {
   program
-    .command('copy-section-keys')
-    .description('Copy selected keys from a section to .env')
-    .action(async () => {
+    .command('download')
+    .description('Download a section from the Gist into a .env file')
+    .option('-o, --output <file>', 'Output file', '.env')
+    .action(async (opts: { output?: string }) => {
       try {
-        const gistContent = await fetchGist();
-        const allVariables = parseEnvContent(gistContent);
+        const { content } = await fetchGist();
+        const allVariables = parseEnvContent(content);
         const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
         if (sectionNames.length === 0) {
           console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
-        const { selectedSection } = await inquirer.prompt([
+        const { selectedSection, mode } = await inquirer.prompt([
           {
             type: 'list',
             name: 'selectedSection',
-            message: color('Select section:', colors.whiteBright),
+            message: color('Select section to download:', colors.whiteBright),
             choices: sectionNames
-          }
-        ]);
-        const sectionVariables = allVariables.filter(v => v.section === selectedSection);
-        if (sectionVariables.length === 0) {
-          console.log(color(`No variables found in section "${selectedSection}"`, colors.yellowBright));
-          return;
-        }
-        const keys = sectionVariables.map(v => v.key);
-        const { selectedKeys, mode, outputFile } = await inquirer.prompt([
-          {
-            type: 'checkbox',
-            name: 'selectedKeys',
-            message: color('Select keys to copy:', colors.whiteBright),
-            choices: keys,
-            validate: (input: string[]) => input.length > 0 ? true : 'Select at least one key'
           },
           {
             type: 'list',
             name: 'mode',
-            message: color('How to add variables:', colors.whiteBright),
+            message: color('Write to .env:', colors.whiteBright),
             choices: [
-              { name: 'Append to existing .env file', value: 'append' },
-              { name: 'Replace existing .env file', value: 'replace' }
+              { name: 'Append to existing .env', value: 'append' },
+              { name: 'Replace .env', value: 'replace' }
             ]
-          },
-          {
-            type: 'input',
-            name: 'outputFile',
-            message: color('Output file:', colors.whiteBright),
-            default: '.env'
           }
         ]);
-        const selectedVariables = sectionVariables.filter(v => selectedKeys.includes(v.key));
-        writeEnvFile(selectedVariables, outputFile, mode);
-        console.log(color(`✓ Selected keys from section "${selectedSection}" copied to ${outputFile}!`, colors.greenBright));
+        const sectionVariables = allVariables.filter(v => v.section === selectedSection);
+        const outputFile = opts.output ?? '.env';
+        writeEnvFile(sectionVariables, outputFile, mode);
+        console.log(color(`✓ Section "${selectedSection}" written to ${outputFile}`, colors.greenBright));
+      } catch (error) {
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+      }
+    });
+}
+
+function defineUploadCommand() {
+  program
+    .command('upload')
+    .description('Upload a project .env-example (or similar) to the Gist as a new section')
+    .argument('[file]', 'Path to env file (default: .env-example or .env.example)')
+    .action(async (fileArg?: string) => {
+      try {
+        const cwd = process.cwd();
+        let filePath = fileArg;
+        if (!filePath) {
+          const found = EXAMPLE_FILES.find(f => fs.existsSync(path.resolve(cwd, f)));
+          if (!found) {
+            console.error(color(`No file found. Create .env-example or .env.example, or pass a path.`, colors.redBright));
+            return;
+          }
+          filePath = path.resolve(cwd, found);
+        } else {
+          filePath = path.resolve(cwd, filePath);
+        }
+        if (!fs.existsSync(filePath)) {
+          console.error(color(`File not found: ${filePath}`, colors.redBright));
+          return;
+        }
+        const fileContent = fs.readFileSync(filePath, 'utf-8').trim();
+        const defaultSection = path.basename(filePath).replace(/^\.env-?/, '') || 'Example';
+        const { sectionName } = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'sectionName',
+            message: color('Section name (e.g. Production, Staging):', colors.whiteBright),
+            default: defaultSection
+          }
+        ]);
+        const { content, filename } = await fetchGist();
+        const newContent = content.trimEnd() + '\n\n# [' + sectionName + ']\n' + fileContent + '\n';
+        await updateGist(filename, newContent);
+        console.log(color(`✓ Section "${sectionName}" added to Gist`, colors.greenBright));
       } catch (error) {
         console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }

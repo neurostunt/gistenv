@@ -24,48 +24,62 @@ interface GistResponse {
   description: string;
 }
 
-export const fetchGist = async (): Promise<string> => {
-  // Support both GISTENV_GIST_ID and GIST_ID for flexibility
+export interface GistEnvFile {
+  content: string;
+  filename: string;
+}
+
+function getAuth(): { gistId: string; githubToken?: string } {
   const gistId = process.env.GISTENV_GIST_ID || process.env.GIST_ID;
-  // Support both GISTENV_GITHUB_TOKEN and GITHUB_TOKEN
   const githubToken = process.env.GISTENV_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-
   if (!gistId) {
-    throw new Error('Gist ID not set. Please set GISTENV_GIST_ID or GIST_ID in your .gistenv or environment.');
+    const cwd = process.cwd();
+    const home = process.env.HOME || process.env.USERPROFILE || '~';
+    throw new Error(
+      'Gist ID not set. Add a .gistenv file in this directory or in your home with GISTENV_GIST_ID and GISTENV_GITHUB_TOKEN.\n' +
+      `  Looked in: ${cwd}/.gistenv and ${home}/.gistenv\n` +
+      '  Or set GISTENV_FILE=/path/to/.gistenv'
+    );
   }
+  return { gistId, githubToken };
+}
 
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github+json'
-  };
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
+function getHeaders(): Record<string, string> {
+  const { githubToken } = getAuth();
+  const headers: Record<string, string> = { 'Accept': 'application/vnd.github+json' };
+  if (githubToken) headers['Authorization'] = `token ${githubToken}`;
+  return headers;
+}
 
-  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers
-  });
+export const fetchGist = async (): Promise<GistEnvFile> => {
+  const { gistId } = getAuth();
+  const response = await fetch(`https://api.github.com/gists/${gistId}`, { headers: getHeaders() });
 
   if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error('Gist not found. Check your Gist ID.');
-    } else if (response.status === 401) {
-      throw new Error('Invalid GitHub token. Set GISTENV_GITHUB_TOKEN or GITHUB_TOKEN in your .gistenv or environment.');
-    }
+    if (response.status === 404) throw new Error('Gist not found. Check your Gist ID.');
+    if (response.status === 401) throw new Error('Invalid GitHub token. Set GISTENV_GITHUB_TOKEN or GITHUB_TOKEN in your .gistenv or environment.');
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json() as GistResponse;
-
-  // Get the .env file from the gist
   const envFile = Object.values(data.files).find(file =>
     file.filename.endsWith('.env') || file.filename === '.env'
   );
+  if (!envFile) throw new Error('No .env file found in the Gist');
+  return { content: envFile.content, filename: envFile.filename };
+};
 
-  if (!envFile) {
-    throw new Error('No .env file found in the Gist');
+export const updateGist = async (filename: string, content: string): Promise<void> => {
+  const { gistId } = getAuth();
+  const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+    method: 'PATCH',
+    headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ files: { [filename]: { content } } })
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Invalid GitHub token. Cannot update Gist.');
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
-
-  return envFile.content;
 };
 
 export const parseEnvContent = (content: string): EnvVariable[] => {
@@ -101,15 +115,6 @@ export const parseEnvContent = (content: string): EnvVariable[] => {
 };
 
 export const getSectionVariables = async (sectionName: string): Promise<EnvVariable[]> => {
-  const content = await fetchGist();
-  const variables = parseEnvContent(content);
-
-  return variables.filter(v => v.section === sectionName);
-};
-
-export const getVariables = async (variableNames: string[]): Promise<EnvVariable[]> => {
-  const content = await fetchGist();
-  const variables = parseEnvContent(content);
-
-  return variables.filter(v => variableNames.includes(v.key));
+  const { content } = await fetchGist();
+  return parseEnvContent(content).filter(v => v.section === sectionName);
 };
