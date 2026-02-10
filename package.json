@@ -1,6 +1,6 @@
 {
   "name": "gistenv",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI tool to copy environment variables from GitHub Gists to local .env files",
   "main": "dist/index.js",
   "bin": {
