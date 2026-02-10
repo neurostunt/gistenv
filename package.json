@@ -13,7 +13,6 @@
     "build": "tsc",
     "watch": "tsc -w",
     "start": "node dist/cli.js",
-    "gistenv": "node dist/cli.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -24,6 +23,10 @@
   ],
   "author": "neurostunt@gmail.com",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neurostunt/gistenv.git"
+  },
   "dependencies": {
     "commander": "^11.1.0",
     "inquirer": "^8.2.6"
