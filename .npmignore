@@ -3,9 +3,6 @@ src/
 
 # Configuration files
 tsconfig.json
-.eslintrc.js
-.prettierrc
-.editorconfig
 
 # Git files
 .git
