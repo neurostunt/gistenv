@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2026-02-11
+
+### Added
+- add history command and git hooks
+
+### Fixed
+- improve release notes extraction in GitHub Actions workflow
+- use action-gh-release for creating GitHub releases with notes
+
+### Changed
+- bump version to 0.2.2
+
+- test: suppress expected warning in decryption failure test
+
 ## [0.2.2] - 2026-02-11
 
 ### Added
