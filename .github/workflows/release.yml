@@ -33,10 +33,10 @@ jobs:
           VERSION_NO_V="${VERSION#v}"
           # Extract the section for this version from CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
-            # Extract everything from the version header until the next version header (or end of file)
-            awk "/^## \[${VERSION_NO_V}\]/,/^## \[/" CHANGELOG.md | sed '$d' > release-notes.txt || \
-            awk "/^## \[${VERSION_NO_V}\]/,0" CHANGELOG.md > release-notes.txt
-            # Remove the header line itself
+            # Use sed to extract from version header until next version header (exclusive)
+            sed -n "/^## \[${VERSION_NO_V}\]/,/^## \[/p" CHANGELOG.md | sed '$d' > release-notes.txt || \
+            sed -n "/^## \[${VERSION_NO_V}\]/,\$p" CHANGELOG.md > release-notes.txt
+            # Remove the header line itself (## [version] - date)
             sed -i '1d' release-notes.txt 2>/dev/null || sed -i '' '1d' release-notes.txt
             # Trim empty lines at the end
             sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-notes.txt 2>/dev/null || \
