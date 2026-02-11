@@ -1,0 +1,8 @@
+# Gitleaks configuration
+# Ignore test files - they contain test encryption keys, not real secrets
+
+[allowlist]
+description = "Ignore test files with test encryption keys"
+paths = [
+  '''tests/.*\.test\.ts''',
+]

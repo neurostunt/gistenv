@@ -91,10 +91,10 @@ DB_URL=localhost`;
     });
 
     it('should decrypt encrypted values when encryption key is available', () => {
-      process.env.GISTENV_ENCRYPTION_KEY = 'test_key_min_16_chars';
+      process.env.GISTENV_ENCRYPTION_KEY = 'test_key_for_testing_16chars';
       
       const originalValue = 'secret_password';
-      const encryptedValue = cryptoModule.encryptValue(originalValue, 'test_key_min_16_chars');
+      const encryptedValue = cryptoModule.encryptValue(originalValue, 'test_key_for_testing_16chars');
       const content = `API_KEY=${encryptedValue}`;
 
       const result = parseEnvContent(content, true);
@@ -102,9 +102,9 @@ DB_URL=localhost`;
     });
 
     it('should keep encrypted values when decryption fails', () => {
-      process.env.GISTENV_ENCRYPTION_KEY = 'wrong_key_min_16_chars';
+      process.env.GISTENV_ENCRYPTION_KEY = 'wrong_test_key_16chars';
       
-      const encryptedValue = cryptoModule.encryptValue('secret', 'test_key_min_16_chars');
+      const encryptedValue = cryptoModule.encryptValue('secret', 'test_key_for_testing_16chars');
       const content = `API_KEY=${encryptedValue}`;
 
       const result = parseEnvContent(content, true);
@@ -133,7 +133,7 @@ DB_URL=localhost`;
 
   describe('encryptEnvContent', () => {
     beforeEach(() => {
-      process.env.GISTENV_ENCRYPTION_KEY = 'test_encryption_key_min_16_chars';
+      process.env.GISTENV_ENCRYPTION_KEY = 'test_encryption_key_16chars';
     });
 
     it('should encrypt all values when encryption key is set', () => {

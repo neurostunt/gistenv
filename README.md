@@ -75,7 +75,7 @@ Automatically download environment variables for different environments in your 
 - `--mode <append|replace>` - Write mode (default: replace)
 - `-o, --output <file>` - Output file path
 
-See `.github/workflows/example-*.yml` for complete examples with multiple environments.
+See `GITHUB_ACTIONS_GUIDE.md` for complete examples with multiple environments.
 
 ## License
 

@@ -7,7 +7,8 @@ import {
 } from '../src/crypto';
 
 describe('crypto', () => {
-  const TEST_KEY = 'test_encryption_key_min_16_chars';
+  // Test encryption key - not a real secret, just for testing
+  const TEST_KEY = 'test_key_for_testing_only_16chars';
 
   beforeEach(() => {
     delete process.env.GISTENV_ENCRYPTION_KEY;
@@ -81,7 +82,7 @@ describe('crypto', () => {
     it('should throw error for wrong encryption key', () => {
       const original = 'secret_value';
       const encrypted = encryptValue(original, TEST_KEY);
-      const wrongKey = 'wrong_key_min_16_chars';
+      const wrongKey = 'wrong_test_key_16chars';
 
       expect(() => decryptValue(encrypted, wrongKey)).toThrow('Failed to decrypt');
     });
@@ -124,19 +125,19 @@ describe('crypto', () => {
     });
 
     it('should return true when GISTENV_ENCRYPTION_KEY is set and long enough', () => {
-      process.env.GISTENV_ENCRYPTION_KEY = 'valid_key_min_16_chars';
+      process.env.GISTENV_ENCRYPTION_KEY = 'valid_test_key_16chars';
       expect(isEncryptionAvailable()).toBe(true);
     });
 
     it('should return true when ENCRYPTION_KEY is set and long enough', () => {
-      process.env.ENCRYPTION_KEY = 'valid_key_min_16_chars';
+      process.env.ENCRYPTION_KEY = 'valid_test_key_16chars';
       expect(isEncryptionAvailable()).toBe(true);
     });
 
     it('should prefer GISTENV_ENCRYPTION_KEY over ENCRYPTION_KEY', () => {
-      process.env.GISTENV_ENCRYPTION_KEY = 'gistenv_key_min_16_chars';
-      process.env.ENCRYPTION_KEY = 'encryption_key_min_16_chars';
-      expect(getEncryptionKey()).toBe('gistenv_key_min_16_chars');
+      process.env.GISTENV_ENCRYPTION_KEY = 'gistenv_test_key_16chars';
+      process.env.ENCRYPTION_KEY = 'encryption_test_key_16chars';
+      expect(getEncryptionKey()).toBe('gistenv_test_key_16chars');
     });
   });
 

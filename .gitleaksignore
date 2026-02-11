@@ -1,0 +1,6 @@
+# Ignore test encryption keys in test files
+# These are not real secrets, just test data
+
+tests/crypto.test.ts
+tests/gist.test.ts
+tests/env.test.ts

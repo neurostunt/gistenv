@@ -55,5 +55,5 @@ npm link         # then: gistenv <command>
 - [x] Encryption support: AES-256-GCM encryption for values if `GISTENV_ENCRYPTION_KEY` is set. Auto-encrypt on upload, auto-decrypt on download. Backward compatible.
 - [x] CI/CD support: `--section` and `--mode` flags for non-interactive download in GitHub Actions.
 - [x] Multi-project support: Sections can be project-based (`"MyApp Production"`, `"WeatherApp Staging"`) or environment-based (`production`, `staging`). Project-based recommended for multiple projects/sites in one Gist.
-- [x] GitHub Actions examples: `.github/workflows/example-deploy.yml`, `example-test.yml`, `example-multi-env.yml`, and `example-project-based.yml`.
+- [x] GitHub Actions guide: `GITHUB_ACTIONS_GUIDE.md` with examples for multiple environments.
 - Use README.md for user docs, TESTING.md for manual testing.
