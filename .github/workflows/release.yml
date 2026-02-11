@@ -33,16 +33,28 @@ jobs:
           VERSION_NO_V="${VERSION#v}"
           # Extract the section for this version from CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
+            # Extract everything from the version header until the next version header (or end of file)
             awk "/^## \[${VERSION_NO_V}\]/,/^## \[/" CHANGELOG.md | sed '$d' > release-notes.txt || \
             awk "/^## \[${VERSION_NO_V}\]/,0" CHANGELOG.md > release-notes.txt
+            # Remove the header line itself
+            sed -i '1d' release-notes.txt 2>/dev/null || sed -i '' '1d' release-notes.txt
+            # Trim empty lines at the end
+            sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-notes.txt 2>/dev/null || \
+            sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-notes.txt
           else
             echo "Release ${{ github.ref_name }}" > release-notes.txt
           fi
+          # Show what we extracted
+          echo "Release notes:"
+          cat release-notes.txt || echo "No release notes found"
       
       - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release-notes.txt
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --notes-file release-notes.txt
