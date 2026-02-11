@@ -24,6 +24,8 @@
 - **list** — `gistenv list`
 - **download** — `gistenv download` (pick section, append/replace, writes to `.env`)
 - **upload** — add `.env-example` or `.env.example` in project, then `gistenv upload` (prompt section name); or `gistenv upload path/to/file`
+- **encrypt** — `gistenv encrypt` (encrypts entire Gist) or `gistenv encrypt <file>` (encrypts local file)
+- **delete** — `gistenv delete` (pick section to remove)
 
 ## Verify
 

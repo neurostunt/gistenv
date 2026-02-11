@@ -1,0 +1,67 @@
+# Example: Deploy with gistenv - Project-based sections
+# This workflow demonstrates how to use gistenv with project-specific sections.
+# You can have multiple projects/sites in one Gist, each with their own environments.
+#
+# Your Gist should have sections like:
+#   # [MyApp Production]
+#   WEATHER_API_KEY=prod_key_123
+#   MAP_API_KEY=map_key_456
+#   # [MyApp Staging]
+#   WEATHER_API_KEY=staging_key_123
+#   MAP_API_KEY=map_key_456
+#   # [WeatherApp Production]
+#   API_KEY=weather_app_key
+
+name: Deploy Example
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      section:
+        description: 'Section name from Gist (e.g., "MyApp Production")'
+        required: true
+        type: string
+        default: 'MyApp Production'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Download environment variables from Gist for selected section
+      # Section name can be anything: "MyApp Production", "WeatherApp Staging", etc.
+      # Make sure to add these secrets to your repository:
+      # - GISTENV_GIST_ID: Your Gist ID
+      # - GISTENV_GITHUB_TOKEN: GitHub token with gist scope
+      # - GISTENV_ENCRYPTION_KEY: (Optional) Encryption key if using encryption
+      - name: Download environment variables for ${{ github.event.inputs.section }}
+        env:
+          GISTENV_GIST_ID: ${{ secrets.GISTENV_GIST_ID }}
+          GISTENV_GITHUB_TOKEN: ${{ secrets.GISTENV_GITHUB_TOKEN }}
+          GISTENV_ENCRYPTION_KEY: ${{ secrets.GISTENV_ENCRYPTION_KEY }}
+        run: |
+          SECTION_NAME="${{ github.event.inputs.section }}"
+          echo "Downloading environment variables for section: $SECTION_NAME"
+          npx gistenv download --section "$SECTION_NAME" --mode replace -o .env
+      
+      # Example: Build your application
+      # - name: Build
+      #   run: npm run build
+      
+      # Example: Deploy
+      # - name: Deploy
+      #   run: npm start

@@ -61,11 +61,10 @@ export const writeEnvFile = (
 
   // Add all new variables
   for (const variable of variables) {
-    if (mode === 'append' && variable.key in existingVars) {
-      // Skip if it already exists and we're in append mode
-      continue;
-    }
-
+    // In append mode, we always add all variables from the section
+    // This allows downloading multiple sections even if they have overlapping keys
+    // The last value for a key will be the one that's used (later sections override earlier ones)
+    
     // Add a section comment if needed
     if (variable.section && (!variables[variables.indexOf(variable) - 1] ||
         variables[variables.indexOf(variable) - 1].section !== variable.section)) {

@@ -1,3 +1,5 @@
+import { encryptValue, decryptValue, getEncryptionKey } from './crypto';
+
 // Inline EnvVariable type
 type EnvVariable = {
   key: string;
@@ -82,10 +84,11 @@ export const updateGist = async (filename: string, content: string): Promise<voi
   }
 };
 
-export const parseEnvContent = (content: string): EnvVariable[] => {
+export const parseEnvContent = (content: string, decrypt = true): EnvVariable[] => {
   const lines = content.split('\n');
   const variables: EnvVariable[] = [];
   let currentSection: string | undefined;
+  const encryptionKey = decrypt ? getEncryptionKey() : undefined;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -99,13 +102,29 @@ export const parseEnvContent = (content: string): EnvVariable[] => {
       continue;
     }
 
-    // Parse env variable
-    const match = trimmedLine.match(/^([^=]+)=(.*)$/);
+    // Parse env variable - use non-greedy match to handle values with = signs
+    const match = trimmedLine.match(/^([^=]+?)=(.*)$/);
     if (match) {
       const [, key, value] = match;
+      let decryptedValue = value.trim();
+      
+      // Decrypt if encryption key is available and value is encrypted
+      if (decrypt && encryptionKey) {
+        try {
+          // Only try to decrypt if value starts with ENC:
+          if (decryptedValue.startsWith('ENC:')) {
+            decryptedValue = decryptValue(decryptedValue, encryptionKey);
+          }
+        } catch (error) {
+          // If decryption fails, log warning but keep encrypted value
+          console.warn(`Warning: Failed to decrypt value for ${key.trim()}: ${error instanceof Error ? error.message : String(error)}`);
+          // Keep original encrypted value
+        }
+      }
+      
       variables.push({
         key: key.trim(),
-        value: value.trim(),
+        value: decryptedValue,
         section: currentSection
       });
     }
@@ -141,4 +160,41 @@ export function removeSectionFromContent(content: string, sectionName: string): 
     i++;
   }
   return result.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+/**
+ * Encrypts all env variable values in content if encryption key is available
+ * Preserves structure (comments, sections, empty lines)
+ */
+export function encryptEnvContent(content: string): string {
+  const encryptionKey = getEncryptionKey();
+  if (!encryptionKey) {
+    return content; // No encryption key, return as-is
+  }
+
+  const lines = content.split('\n');
+  const encryptedLines: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Keep comments, empty lines, and section headers as-is
+    if (!trimmedLine || trimmedLine.startsWith('#')) {
+      encryptedLines.push(line);
+      continue;
+    }
+
+    // Encrypt env variable values
+    const match = trimmedLine.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      const encryptedValue = encryptValue(value.trim(), encryptionKey);
+      encryptedLines.push(`${key.trim()}=${encryptedValue}`);
+    } else {
+      // Not a valid env line, keep as-is
+      encryptedLines.push(line);
+    }
+  }
+
+  return encryptedLines.join('\n');
 }

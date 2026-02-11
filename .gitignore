@@ -31,3 +31,6 @@ Thumbs.db
 
 # New line
 .gistenv
+
+# Comparison document (not for commit)
+COMPARISON.md

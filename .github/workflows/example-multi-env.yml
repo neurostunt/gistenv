@@ -1,0 +1,90 @@
+# Example: Multi-environment CI/CD with gistenv
+# This workflow demonstrates deploying to different environments based on branch or manual selection.
+#
+# Your Gist should have sections for each environment:
+#   # [Development]
+#   API_KEY=dev_key
+#   # [Staging]
+#   API_KEY=staging_key
+#   # [Production]
+#   API_KEY=prod_key
+
+name: Multi-Environment Deploy
+
+on:
+  push:
+    branches:
+      - develop    # Deploy to development
+      - staging    # Deploy to staging
+      - main       # Deploy to production
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: 'staging'
+
+jobs:
+  determine-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+    steps:
+      - id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "environment=development" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: determine-environment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Download environment variables for the determined environment
+      # The section name in Gist must match the environment name
+      - name: Download environment variables for ${{ needs.determine-environment.outputs.environment }}
+        env:
+          GISTENV_GIST_ID: ${{ secrets.GISTENV_GIST_ID }}
+          GISTENV_GITHUB_TOKEN: ${{ secrets.GISTENV_GITHUB_TOKEN }}
+          GISTENV_ENCRYPTION_KEY: ${{ secrets.GISTENV_ENCRYPTION_KEY }}
+        run: |
+          ENV_NAME="${{ needs.determine-environment.outputs.environment }}"
+          echo "Deploying to environment: $ENV_NAME"
+          npx gistenv download --section "$ENV_NAME" --mode replace -o .env
+          echo "Environment variables downloaded successfully"
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Deploy to ${{ needs.determine-environment.outputs.environment }}
+        run: |
+          echo "Deploying to ${{ needs.determine-environment.outputs.environment }}..."
+          # Your deployment logic here
+          # npm start
+          # or deploy to your hosting platform

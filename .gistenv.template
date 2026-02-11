@@ -4,6 +4,11 @@
 GISTENV_GIST_ID=your_gist_id_here
 GISTENV_GITHUB_TOKEN=your_token_here
 
+# Optional: Encryption key for encrypting/decrypting values (min 16 characters)
+# If set, all values will be encrypted before upload and decrypted on download
+# GISTENV_ENCRYPTION_KEY=your_encryption_key_min_16_chars
+
 # You can also use these alternative variable names for compatibility:
 # GIST_ID=your_gist_id_here
 # GITHUB_TOKEN=your_token_here
+# ENCRYPTION_KEY=your_encryption_key_min_16_chars

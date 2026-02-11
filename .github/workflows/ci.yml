@@ -26,3 +26,5 @@ jobs:
         run: |
           test -f dist/cli.js || exit 1
           test -f dist/cli.d.ts || exit 1
+      - name: Run tests
+        run: npm test

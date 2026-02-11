@@ -14,6 +14,9 @@
     "build": "tsc",
     "watch": "tsc -w",
     "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "security": "npm audit",
     "prepublishOnly": "npm run build",
     "release": "node scripts/release.mjs",
@@ -47,6 +50,8 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
     "@types/node": "^25",
-    "typescript": "^5.3.3"
+    "@vitest/ui": "^4.0.18",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
   }
 }

@@ -1,0 +1,67 @@
+# Example: Project-based sections in Gist
+# This workflow demonstrates using gistenv with project-specific section names.
+# Perfect for managing multiple projects/sites in one Gist.
+#
+# Your Gist should have sections like:
+#   # [MyApp Production]
+#   WEATHER_API_KEY=prod_weather_key
+#   MAP_API_KEY=prod_map_key
+#   # [MyApp Staging]
+#   WEATHER_API_KEY=staging_weather_key
+#   MAP_API_KEY=staging_map_key
+#   # [MyApp Test]
+#   WEATHER_API_KEY=test_weather_key
+#   MAP_API_KEY=test_map_key
+
+name: Deploy MyApp
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - Production
+          - Staging
+          - Test
+        default: 'Staging'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Download environment variables for "MyApp {Environment}"
+      # Section name combines project name + environment
+      - name: Download environment variables
+        env:
+          GISTENV_GIST_ID: ${{ secrets.GISTENV_GIST_ID }}
+          GISTENV_GITHUB_TOKEN: ${{ secrets.GISTENV_GITHUB_TOKEN }}
+          GISTENV_ENCRYPTION_KEY: ${{ secrets.GISTENV_ENCRYPTION_KEY }}
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          SECTION_NAME="MyApp $ENV"
+          echo "Downloading environment variables for: $SECTION_NAME"
+          npx gistenv download --section "$SECTION_NAME" --mode replace -o .env
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to ${{ github.event.inputs.environment }}
+        run: npm start
