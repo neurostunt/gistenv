@@ -56,7 +56,7 @@ function color(text: string, code: string) {
 
 import { Command } from 'commander';
 import { select, input } from '@inquirer/prompts';
-import { fetchGist, updateGist, parseEnvContent, removeSectionFromContent, encryptEnvContent } from './gist';
+import { fetchGist, updateGist, parseEnvContent, removeSectionFromContent, encryptEnvContent, fetchGistHistory, fetchGistRevision } from './gist';
 import { writeEnvFile } from './env';
 import { isEncryptionAvailable } from './crypto';
 
@@ -75,6 +75,7 @@ defineDownloadCommand();
 defineUploadCommand();
 defineDeleteCommand();
 defineEncryptCommand();
+defineHistoryCommand();
 
 function defineSectionsCommand() {
   program
@@ -253,6 +254,87 @@ function defineDeleteCommand() {
         const newContent = removeSectionFromContent(content, selectedSection);
         await updateGist(filename, newContent);
         console.log(color(`✓ Section "${selectedSection}" deleted from Gist`, colors.greenBright));
+      } catch (error) {
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+      }
+    });
+}
+
+function defineHistoryCommand() {
+  program
+    .command('history')
+    .description('Show Gist commit history, optionally filtered by section')
+    .argument('[section]', 'Filter history by section name')
+    .option('-l, --limit <number>', 'Limit number of commits to show', '10')
+    .action(async function(sectionArg?: string) {
+      try {
+        const opts = this.opts();
+        const limit = parseInt(opts.limit || '10', 10);
+        
+        const commits = await fetchGistHistory();
+        if (commits.length === 0) {
+          console.log(color('No commit history found.', colors.yellowBright));
+          return;
+        }
+
+        // If section is provided, filter commits that affected that section
+        let filteredCommits = commits;
+        if (sectionArg) {
+          // Fetch current sections to validate
+          const { content } = await fetchGist();
+          const allVariables = parseEnvContent(content, false);
+          const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
+          
+          if (!sectionNames.includes(sectionArg)) {
+            console.error(color(`Error: Section "${sectionArg}" not found. Available sections: ${sectionNames.join(', ')}`, colors.redBright));
+            return;
+          }
+
+          // Check each commit to see if it affected the section
+          const sectionHeader = `# [${sectionArg}]`;
+          filteredCommits = [];
+          
+          for (const commit of commits.slice(0, Math.min(limit * 2, commits.length))) {
+            try {
+              const revision = await fetchGistRevision(commit.version);
+              if (revision.content.includes(sectionHeader)) {
+                filteredCommits.push(commit);
+              }
+            } catch (error) {
+              // Skip commits we can't fetch
+              continue;
+            }
+            if (filteredCommits.length >= limit) break;
+          }
+        } else {
+          filteredCommits = commits.slice(0, limit);
+        }
+
+        if (filteredCommits.length === 0) {
+          console.log(color(`No commits found${sectionArg ? ` affecting section "${sectionArg}"` : ''}.`, colors.yellowBright));
+          return;
+        }
+
+        console.log(color(`\nGist History${sectionArg ? ` (filtered by section: ${sectionArg})` : ''}:`, colors.whiteBright));
+        console.log(color('─'.repeat(80), colors.cyanBright));
+        
+        filteredCommits.forEach((commit, index) => {
+          const date = new Date(commit.committed_at).toLocaleString();
+          const user = commit.user?.login || 'Unknown';
+          const changes = commit.change_status;
+          const sha = commit.version.substring(0, 7);
+          
+          console.log(color(`\n${index + 1}. ${sha}`, colors.cyanBright));
+          console.log(color(`   Date: ${date}`, colors.whiteBright));
+          console.log(color(`   User: ${user}`, colors.whiteBright));
+          console.log(color(`   Changes: +${changes.additions} / -${changes.deletions}`, colors.greenBright));
+          if (commit.url) {
+            console.log(color(`   URL: ${commit.url}`, colors.yellowBright));
+          }
+        });
+        
+        console.log(color('\n─'.repeat(80), colors.cyanBright));
+        console.log(color(`Showing ${filteredCommits.length} of ${commits.length} total commits`, colors.cyanBright));
       } catch (error) {
         console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }

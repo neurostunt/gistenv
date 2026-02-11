@@ -13,8 +13,8 @@ Use this file for project context and architectural decisions. Update it after s
 
 | Path | Role |
 |------|------|
-| `src/cli.ts` | Loads `.gistenv` first; commands: `sections`, `list`, `download`, `upload`. |
-| `src/gist.ts` | `fetchGist()` → `{ content, filename }`; `updateGist(filename, content)` (PATCH); `parseEnvContent()` for `# [Section]` + KEY=VALUE; `encryptEnvContent()` for encryption. |
+| `src/cli.ts` | Loads `.gistenv` first; commands: `sections`, `list`, `download`, `upload`, `delete`, `encrypt`, `history`. |
+| `src/gist.ts` | `fetchGist()` → `{ content, filename }`; `updateGist(filename, content)` (PATCH); `parseEnvContent()` for `# [Section]` + KEY=VALUE; `encryptEnvContent()` for encryption; `fetchGistHistory()` for commit history; `fetchGistRevision(sha)` for specific revision. |
 | `src/env.ts` | `loadEnvFile()`, `writeEnvFile(vars, path, 'append'|'replace')`. |
 | `src/crypto.ts` | `encryptValue()`, `decryptValue()` using AES-256-GCM; `getEncryptionKey()`, `isEncryptionAvailable()`. |
 
@@ -33,6 +33,7 @@ Use this file for project context and architectural decisions. Update it after s
 - `upload [file]` — read file (default .env), prompt section name, append `# [Name]` + content to Gist via PATCH.
 - `delete` — pick section → remove that section (header + vars) from Gist via PATCH; rest of content unchanged.
 - `encrypt` — encrypt all values in existing Gist (requires GISTENV_ENCRYPTION_KEY). Parses content, encrypts unencrypted values, updates entire Gist.
+- `history [section]` — show Gist commit history. Optional `[section]` filters commits affecting that section. Option `-l, --limit <number>` limits results (default: 10).
 
 ## Conventions
 
@@ -46,7 +47,14 @@ npm run build    # tsc → dist/
 npm run watch    # tsc -w
 npm start        # node dist/cli.js
 npm link         # then: gistenv <command>
+npm test         # run tests
 ```
+
+## Git hooks
+
+- **pre-commit**: Runs `npm run build` to ensure code compiles before commit
+- **pre-push**: Runs `npm test` to ensure all tests pass before push
+- Uses Husky v9 for git hooks management
 
 ## Current progress
 
@@ -56,4 +64,6 @@ npm link         # then: gistenv <command>
 - [x] CI/CD support: `--section` and `--mode` flags for non-interactive download in GitHub Actions.
 - [x] Multi-project support: Sections can be project-based (`"MyApp Production"`, `"WeatherApp Staging"`) or environment-based (`production`, `staging`). Project-based recommended for multiple projects/sites in one Gist.
 - [x] GitHub Actions guide: `GITHUB_ACTIONS_GUIDE.md` with examples for multiple environments.
+- [x] History command: `history [section]` shows Gist commit history, optionally filtered by section. Uses GitHub Gist API `/gists/{id}/commits` endpoint.
+- [x] Git hooks: pre-commit runs build, pre-push runs tests (using Husky v9).
 - Use README.md for user docs, TESTING.md for manual testing.

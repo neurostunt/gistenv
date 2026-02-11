@@ -3,6 +3,8 @@ import {
   parseEnvContent,
   encryptEnvContent,
   removeSectionFromContent,
+  fetchGistHistory,
+  fetchGistRevision,
 } from '../src/gist';
 import * as cryptoModule from '../src/crypto';
 
@@ -329,6 +331,250 @@ API_KEY=staging_key`;
 
       expect(result).not.toContain('# [Production]');
       expect(result).toContain('# [Staging]');
+    });
+  });
+
+  describe('fetchGistHistory', () => {
+    beforeEach(() => {
+      process.env.GISTENV_GIST_ID = 'test-gist-id';
+      process.env.GISTENV_GITHUB_TOKEN = 'test-token';
+    });
+
+    it('should fetch gist commit history', async () => {
+      const mockCommits = [
+        {
+          url: 'https://api.github.com/gists/test-gist-id/abc123',
+          version: 'abc123def456',
+          user: {
+            login: 'testuser',
+            id: 12345,
+            avatar_url: 'https://avatar.url',
+            html_url: 'https://github.com/testuser',
+          },
+          change_status: {
+            total: 5,
+            additions: 3,
+            deletions: 2,
+          },
+          committed_at: '2024-01-15T10:30:00Z',
+        },
+        {
+          url: 'https://api.github.com/gists/test-gist-id/def456',
+          version: 'def456ghi789',
+          user: {
+            login: 'testuser',
+            id: 12345,
+            avatar_url: 'https://avatar.url',
+            html_url: 'https://github.com/testuser',
+          },
+          change_status: {
+            total: 3,
+            additions: 2,
+            deletions: 1,
+          },
+          committed_at: '2024-01-14T09:20:00Z',
+        },
+      ];
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockCommits,
+      } as Response);
+
+      const result = await fetchGistHistory();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].version).toBe('abc123def456');
+      expect(result[0].user?.login).toBe('testuser');
+      expect(result[0].change_status.additions).toBe(3);
+      expect(result[0].change_status.deletions).toBe(2);
+      expect(result[1].version).toBe('def456ghi789');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.github.com/gists/test-gist-id/commits',
+        { headers: expect.objectContaining({ Accept: 'application/vnd.github+json' }) }
+      );
+    });
+
+    it('should handle commits with null user', async () => {
+      const mockCommits = [
+        {
+          url: 'https://api.github.com/gists/test-gist-id/abc123',
+          version: 'abc123def456',
+          user: null,
+          change_status: {
+            total: 2,
+            additions: 1,
+            deletions: 1,
+          },
+          committed_at: '2024-01-15T10:30:00Z',
+        },
+      ];
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockCommits,
+      } as Response);
+
+      const result = await fetchGistHistory();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].user).toBeNull();
+    });
+
+    it('should throw error when gist not found', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as Response);
+
+      await expect(fetchGistHistory()).rejects.toThrow('Gist not found');
+    });
+
+    it('should throw error when unauthorized', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      } as Response);
+
+      await expect(fetchGistHistory()).rejects.toThrow('Invalid GitHub token');
+    });
+
+    it('should throw error when gist ID not set', async () => {
+      delete process.env.GISTENV_GIST_ID;
+      delete process.env.GIST_ID;
+
+      await expect(fetchGistHistory()).rejects.toThrow('Gist ID not set');
+    });
+  });
+
+  describe('fetchGistRevision', () => {
+    beforeEach(() => {
+      process.env.GISTENV_GIST_ID = 'test-gist-id';
+      process.env.GISTENV_GITHUB_TOKEN = 'test-token';
+    });
+
+    it('should fetch specific gist revision', async () => {
+      const mockGistResponse = {
+        files: {
+          '.env': {
+            filename: '.env',
+            type: 'text/plain',
+            language: 'Text',
+            raw_url: 'https://gist.githubusercontent.com/test/.env',
+            size: 100,
+            truncated: false,
+            content: '# [Production]\nAPI_KEY=prod_key\nDB_URL=prod.db.com',
+          },
+        },
+        id: 'test-gist-id',
+        public: false,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-15T10:30:00Z',
+        description: 'Test gist',
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockGistResponse,
+      } as Response);
+
+      const result = await fetchGistRevision('abc123def456');
+
+      expect(result.filename).toBe('.env');
+      expect(result.content).toContain('# [Production]');
+      expect(result.content).toContain('API_KEY=prod_key');
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.github.com/gists/test-gist-id/abc123def456',
+        { headers: expect.objectContaining({ Accept: 'application/vnd.github+json' }) }
+      );
+    });
+
+    it('should handle gist with .env filename variant', async () => {
+      const mockGistResponse = {
+        files: {
+          'my-env.env': {
+            filename: 'my-env.env',
+            type: 'text/plain',
+            language: 'Text',
+            raw_url: 'https://gist.githubusercontent.com/test/my-env.env',
+            size: 50,
+            truncated: false,
+            content: 'API_KEY=test_key',
+          },
+        },
+        id: 'test-gist-id',
+        public: false,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-15T10:30:00Z',
+        description: 'Test gist',
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockGistResponse,
+      } as Response);
+
+      const result = await fetchGistRevision('abc123def456');
+
+      expect(result.filename).toBe('my-env.env');
+      expect(result.content).toBe('API_KEY=test_key');
+    });
+
+    it('should throw error when revision not found', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as Response);
+
+      await expect(fetchGistRevision('invalid-sha')).rejects.toThrow('Gist revision not found');
+    });
+
+    it('should throw error when no .env file in revision', async () => {
+      const mockGistResponse = {
+        files: {
+          'readme.md': {
+            filename: 'readme.md',
+            type: 'text/markdown',
+            language: 'Markdown',
+            raw_url: 'https://gist.githubusercontent.com/test/readme.md',
+            size: 50,
+            truncated: false,
+            content: '# Readme',
+          },
+        },
+        id: 'test-gist-id',
+        public: false,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-15T10:30:00Z',
+        description: 'Test gist',
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockGistResponse,
+      } as Response);
+
+      await expect(fetchGistRevision('abc123def456')).rejects.toThrow('No .env file found');
+    });
+
+    it('should throw error when unauthorized', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      } as Response);
+
+      await expect(fetchGistRevision('abc123def456')).rejects.toThrow('Invalid GitHub token');
+    });
+
+    it('should throw error when gist ID not set', async () => {
+      delete process.env.GISTENV_GIST_ID;
+      delete process.env.GIST_ID;
+
+      await expect(fetchGistRevision('abc123def456')).rejects.toThrow('Gist ID not set');
     });
   });
 });

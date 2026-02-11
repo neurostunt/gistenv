@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
+const IV_LENGTH = 12; // 96-bit nonce as per NIST SP 800-38D for AES-GCM
 const SALT_LENGTH = 64;
-const TAG_LENGTH = 16;
-const KEY_LENGTH = 32;
+const TAG_LENGTH = 16; // 128-bit authentication tag
+const KEY_LENGTH = 32; // 256-bit key
 const ITERATIONS = 100000;
 
 const ENCRYPTION_PREFIX = 'ENC:';

@@ -22,7 +22,8 @@
     "release": "node scripts/release.mjs",
     "release:patch": "node scripts/release.mjs patch",
     "release:minor": "node scripts/release.mjs minor",
-    "release:major": "node scripts/release.mjs major"
+    "release:major": "node scripts/release.mjs major",
+    "prepare": "husky"
   },
   "keywords": [
     "env",
@@ -51,6 +52,7 @@
     "@types/inquirer": "^9.0.9",
     "@types/node": "^25",
     "@vitest/ui": "^4.0.18",
+    "husky": "^9.1.7",
     "typescript": "^5.3.3",
     "vitest": "^4.0.18"
   }

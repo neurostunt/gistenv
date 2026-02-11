@@ -31,6 +31,23 @@ export interface GistEnvFile {
   filename: string;
 }
 
+export interface GistCommit {
+  url: string;
+  version: string;
+  user: {
+    login: string;
+    id: number;
+    avatar_url: string;
+    html_url: string;
+  } | null;
+  change_status: {
+    total: number;
+    additions: number;
+    deletions: number;
+  };
+  committed_at: string;
+}
+
 function getAuth(): { gistId: string; githubToken?: string } {
   const gistId = process.env.GISTENV_GIST_ID || process.env.GIST_ID;
   const githubToken = process.env.GISTENV_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
@@ -82,6 +99,38 @@ export const updateGist = async (filename: string, content: string): Promise<voi
     if (response.status === 401) throw new Error('Invalid GitHub token. Cannot update Gist.');
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
+};
+
+export const fetchGistHistory = async (): Promise<GistCommit[]> => {
+  const { gistId } = getAuth();
+  const response = await fetch(`https://api.github.com/gists/${gistId}/commits`, { headers: getHeaders() });
+
+  if (!response.ok) {
+    if (response.status === 404) throw new Error('Gist not found. Check your Gist ID.');
+    if (response.status === 401) throw new Error('Invalid GitHub token. Set GISTENV_GITHUB_TOKEN or GITHUB_TOKEN in your .gistenv or environment.');
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+
+  const commits = await response.json() as GistCommit[];
+  return commits;
+};
+
+export const fetchGistRevision = async (sha: string): Promise<GistEnvFile> => {
+  const { gistId } = getAuth();
+  const response = await fetch(`https://api.github.com/gists/${gistId}/${sha}`, { headers: getHeaders() });
+
+  if (!response.ok) {
+    if (response.status === 404) throw new Error('Gist revision not found.');
+    if (response.status === 401) throw new Error('Invalid GitHub token. Set GISTENV_GITHUB_TOKEN or GITHUB_TOKEN in your .gistenv or environment.');
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json() as GistResponse;
+  const envFile = Object.values(data.files).find(file =>
+    file.filename.endsWith('.env') || file.filename === '.env'
+  );
+  if (!envFile) throw new Error('No .env file found in the Gist revision');
+  return { content: envFile.content, filename: envFile.filename };
 };
 
 export const parseEnvContent = (content: string, decrypt = true): EnvVariable[] => {
