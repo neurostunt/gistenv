@@ -2,6 +2,10 @@ name: Security audit
 
 on:
   push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
   pull_request:
 
 jobs:
