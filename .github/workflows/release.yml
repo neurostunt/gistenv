@@ -22,9 +22,6 @@ jobs:
       - run: npm run build
       - name: Publish to npm
         run: npm publish
-      - name: Generate changelog
-        run: |
-          node scripts/generate-changelog.mjs "${{ github.ref_name }}"
       
       - name: Extract release notes from changelog
         id: changelog
