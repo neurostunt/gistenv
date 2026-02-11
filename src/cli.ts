@@ -123,8 +123,9 @@ function defineDownloadCommand() {
     .command('download')
     .description('Download a section from the Gist into a .env file')
     .option('-o, --output <file>', 'Output file', '.env')
-    .action(async (opts: { output?: string }) => {
+    .action(async function() {
       try {
+        const opts = this.opts();
         const { content } = await fetchGist();
         const allVariables = parseEnvContent(content);
         const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
@@ -132,7 +133,7 @@ function defineDownloadCommand() {
           console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
-        const { selectedSection, mode } = await inquirer.prompt([
+        const answers = await inquirer.prompt([
           {
             type: 'list',
             name: 'selectedSection',
@@ -149,8 +150,14 @@ function defineDownloadCommand() {
             ]
           }
         ]);
+        const selectedSection = answers.selectedSection as string;
+        const mode = answers.mode as 'append' | 'replace';
+        if (!selectedSection) {
+          console.error(color('Error: No section selected', colors.redBright));
+          return;
+        }
         const sectionVariables = allVariables.filter(v => v.section === selectedSection);
-        const outputFile = opts.output ?? '.env';
+        const outputFile = (opts.output as string | undefined) ?? '.env';
         writeEnvFile(sectionVariables, outputFile, mode);
         console.log(color(`✓ Section "${selectedSection}" written to ${outputFile}`, colors.greenBright));
       } catch (error) {
