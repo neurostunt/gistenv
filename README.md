@@ -1,6 +1,6 @@
 # GistEnv
 
-Sync env vars with a GitHub Gist: upload `.env` as a section, download a section to `.env`. No install — use **npx**.
+    Sync env vars with a GitHub Gist: upload `.env` as a section, download a section to `.env`. No install — use **npx**.
 
 **Repo:** [github.com/neurostunt/gistenv](https://github.com/neurostunt/gistenv)
 
