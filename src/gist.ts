@@ -118,3 +118,27 @@ export const getSectionVariables = async (sectionName: string): Promise<EnvVaria
   const { content } = await fetchGist();
   return parseEnvContent(content).filter(v => v.section === sectionName);
 };
+
+/** Remove one section (header + all lines until next # [Section] or end). Preserves rest of content. */
+export function removeSectionFromContent(content: string, sectionName: string): string {
+  const sectionHeader = `# [${sectionName}]`;
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+    if (trimmed === sectionHeader) {
+      i++;
+      while (i < lines.length && !/^#\s*\[[^\]]*\]\s*$/.test(lines[i].trim())) {
+        i++;
+      }
+      if (result.length > 0 && result[result.length - 1] !== '') {
+        result.push('');
+      }
+      continue;
+    }
+    result.push(lines[i]);
+    i++;
+  }
+  return result.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+}

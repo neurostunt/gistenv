@@ -21,14 +21,15 @@ Use this file for project context and architectural decisions. Update it after s
 
 - **Auth:** `.gistenv` in cwd or HOME (cwd wins). `GISTENV_GIST_ID` or `GIST_ID`, `GISTENV_GITHUB_TOKEN` or `GITHUB_TOKEN`. Never committed.
 - **Gist:** One file named `.env` or `*.env`. Sections: `# [SectionName]` then KEY=VALUE lines.
-- **Upload input:** Default files: `.env-example`, `.env.example` (in that order); or pass path. Section name prompted (default from filename).
+- **Upload input:** Default file: `.env`; or pass path (e.g. `upload .env.example`). Section name prompted (default from filename).
 
 ## Commands
 
 - `sections` — list section names in Gist.
 - `list` — all vars grouped by section.
 - `download` — pick section → append/replace → write to `.env` (or `-o <file>`).
-- `upload [file]` — read file (default .env-example/.env.example), prompt section name, append `# [Name]` + content to Gist via PATCH.
+- `upload [file]` — read file (default .env), prompt section name, append `# [Name]` + content to Gist via PATCH.
+- `delete` — pick section → remove that section (header + vars) from Gist via PATCH; rest of content unchanged.
 
 ## Conventions
 

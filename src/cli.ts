@@ -56,22 +56,23 @@ function color(text: string, code: string) {
 
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { fetchGist, updateGist, parseEnvContent } from './gist';
+import { fetchGist, updateGist, parseEnvContent, removeSectionFromContent } from './gist';
 import { writeEnvFile } from './env';
 
 const program = new Command();
 
-const EXAMPLE_FILES = ['.env-example', '.env.example'];
+const DEFAULT_UPLOAD_FILE = '.env';
 
 program
   .name('gistenv')
-  .description('Upload project .env-example to Gist as a section, or download a section into .env')
+  .description('Upload .env to Gist as a section, or download a section into .env')
   .version('0.1.0');
 
 defineSectionsCommand();
 defineListCommand();
 defineDownloadCommand();
 defineUploadCommand();
+defineDeleteCommand();
 
 function defineSectionsCommand() {
   program
@@ -161,22 +162,14 @@ function defineDownloadCommand() {
 function defineUploadCommand() {
   program
     .command('upload')
-    .description('Upload a project .env-example (or similar) to the Gist as a new section')
-    .argument('[file]', 'Path to env file (default: .env-example or .env.example)')
+    .description('Upload .env to the Gist as a new section')
+    .argument('[file]', 'Path to env file (default: .env)')
     .action(async (fileArg?: string) => {
       try {
         const cwd = process.cwd();
-        let filePath = fileArg;
-        if (!filePath) {
-          const found = EXAMPLE_FILES.find(f => fs.existsSync(path.resolve(cwd, f)));
-          if (!found) {
-            console.error(color(`No file found. Create .env-example or .env.example, or pass a path.`, colors.redBright));
-            return;
-          }
-          filePath = path.resolve(cwd, found);
-        } else {
-          filePath = path.resolve(cwd, filePath);
-        }
+        const filePath = fileArg
+          ? path.resolve(cwd, fileArg)
+          : path.resolve(cwd, DEFAULT_UPLOAD_FILE);
         if (!fs.existsSync(filePath)) {
           console.error(color(`File not found: ${filePath}`, colors.redBright));
           return;
@@ -195,6 +188,36 @@ function defineUploadCommand() {
         const newContent = content.trimEnd() + '\n\n# [' + sectionName + ']\n' + fileContent + '\n';
         await updateGist(filename, newContent);
         console.log(color(`✓ Section "${sectionName}" added to Gist`, colors.greenBright));
+      } catch (error) {
+        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+      }
+    });
+}
+
+function defineDeleteCommand() {
+  program
+    .command('delete')
+    .description('Delete a section from the Gist')
+    .action(async () => {
+      try {
+        const { content, filename } = await fetchGist();
+        const allVariables = parseEnvContent(content);
+        const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
+        if (sectionNames.length === 0) {
+          console.log(color('No sections found in your Gist.', colors.yellowBright));
+          return;
+        }
+        const { selectedSection } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'selectedSection',
+            message: color('Select section to delete:', colors.whiteBright),
+            choices: sectionNames
+          }
+        ]);
+        const newContent = removeSectionFromContent(content, selectedSection);
+        await updateGist(filename, newContent);
+        console.log(color(`✓ Section "${selectedSection}" deleted from Gist`, colors.greenBright));
       } catch (error) {
         console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
       }

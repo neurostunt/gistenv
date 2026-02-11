@@ -1,6 +1,6 @@
 # GistEnv
 
-Sync env vars with a GitHub Gist: upload `.env-example` as a section, download a section to `.env`. No install — use **npx**.
+Sync env vars with a GitHub Gist: upload `.env` as a section, download a section to `.env`. No install — use **npx**.
 
 **Repo:** [github.com/neurostunt/gistenv](https://github.com/neurostunt/gistenv)
 
@@ -20,8 +20,9 @@ Token needs **gist** scope. Use a private Gist for secrets. Don’t commit `.gis
 ## Commands
 
 ```bash
-npx gistenv upload      # add .env-example (or file) as new section
+npx gistenv upload      # add .env as new section (or: upload <path> for another file)
 npx gistenv download    # pick section → write to .env
+npx gistenv delete      # pick section → remove it from Gist
 npx gistenv sections    # list sections
 npx gistenv list        # list all vars by section
 ```
