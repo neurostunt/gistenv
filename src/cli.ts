@@ -55,7 +55,7 @@ function color(text: string, code: string) {
 }
 
 import { Command } from 'commander';
-import inquirer from 'inquirer';
+import { select, input } from '@inquirer/prompts';
 import { fetchGist, updateGist, parseEnvContent, removeSectionFromContent } from './gist';
 import { writeEnvFile } from './env';
 
@@ -66,7 +66,7 @@ const DEFAULT_UPLOAD_FILE = '.env';
 program
   .name('gistenv')
   .description('Upload .env to Gist as a section, or download a section into .env')
-  .version('0.1.0');
+  .version('0.1.8');
 
 defineSectionsCommand();
 defineListCommand();
@@ -133,25 +133,17 @@ function defineDownloadCommand() {
           console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
-        const answers = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'selectedSection',
-            message: color('Select section to download:', colors.whiteBright),
-            choices: sectionNames
-          },
-          {
-            type: 'list',
-            name: 'mode',
-            message: color('Write to .env:', colors.whiteBright),
-            choices: [
-              { name: 'Append to existing .env', value: 'append' },
-              { name: 'Replace .env', value: 'replace' }
-            ]
-          }
-        ]);
-        const selectedSection = answers.selectedSection as string;
-        const mode = answers.mode as 'append' | 'replace';
+        const selectedSection = await select({
+          message: 'Select section to download:',
+          choices: sectionNames.map(name => ({ value: name, name }))
+        });
+        const mode = await select({
+          message: 'Write to .env:',
+          choices: [
+            { value: 'append', name: 'Append to existing .env' },
+            { value: 'replace', name: 'Replace .env' }
+          ]
+        }) as 'append' | 'replace';
         if (!selectedSection) {
           console.error(color('Error: No section selected', colors.redBright));
           return;
@@ -183,14 +175,10 @@ function defineUploadCommand() {
         }
         const fileContent = fs.readFileSync(filePath, 'utf-8').trim();
         const defaultSection = path.basename(filePath).replace(/^\.env-?/, '') || 'Example';
-        const { sectionName } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'sectionName',
-            message: color('Section name (e.g. Production, Staging):', colors.whiteBright),
-            default: defaultSection
-          }
-        ]);
+        const sectionName = await input({
+          message: color('Section name (e.g. Production, Staging):', colors.whiteBright),
+          default: defaultSection
+        });
         const { content, filename } = await fetchGist();
         const newContent = content.trimEnd() + '\n\n# [' + sectionName + ']\n' + fileContent + '\n';
         await updateGist(filename, newContent);
@@ -214,14 +202,10 @@ function defineDeleteCommand() {
           console.log(color('No sections found in your Gist.', colors.yellowBright));
           return;
         }
-        const { selectedSection } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'selectedSection',
-            message: color('Select section to delete:', colors.whiteBright),
-            choices: sectionNames
-          }
-        ]);
+        const selectedSection = await select({
+          message: 'Select section to delete:',
+          choices: sectionNames.map(name => ({ value: name, name }))
+        });
         const newContent = removeSectionFromContent(content, selectedSection);
         await updateGist(filename, newContent);
         console.log(color(`✓ Section "${selectedSection}" deleted from Gist`, colors.greenBright));

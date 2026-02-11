@@ -1,6 +1,6 @@
 {
   "name": "gistenv",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "CLI tool to copy environment variables from GitHub Gists to local .env files",
   "main": "dist/cli.js",
   "types": "dist/cli.d.ts",
@@ -37,8 +37,8 @@
     "url": "https://github.com/neurostunt/gistenv/issues"
   },
   "dependencies": {
-    "commander": "^14.0.3",
-    "inquirer": "^13.2.2"
+    "@inquirer/prompts": "^8.2.0",
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
