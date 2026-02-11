@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-02-11
+
+### Added
+- add history command and git hooks
+
+### Fixed
+- use action-gh-release for creating GitHub releases with notes
+
+### Changed
+- bump version to 0.2.1
+
+- Remove example workflows, add gitleaks config, update docs with workflow examples
+
 ## [0.2.1] - 2026-02-11
 
 ### Changed
