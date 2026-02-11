@@ -109,9 +109,18 @@ DB_URL=localhost`;
       const encryptedValue = cryptoModule.encryptValue('secret', 'test_key_for_testing_16chars');
       const content = `API_KEY=${encryptedValue}`;
 
+      // Suppress expected warning for this test
+      const originalWarn = console.warn;
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       const result = parseEnvContent(content, true);
+      
       // Should keep encrypted value if decryption fails
       expect(result[0].value).toBe(encryptedValue);
+      // Should have logged a warning
+      expect(warnSpy).toHaveBeenCalled();
+      
+      warnSpy.mockRestore();
     });
 
     it('should handle variables without sections', () => {
