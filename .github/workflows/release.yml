@@ -22,10 +22,27 @@ jobs:
       - run: npm run build
       - name: Publish to npm
         run: npm publish
+      - name: Generate changelog
+        run: |
+          node scripts/generate-changelog.mjs "${{ github.ref_name }}"
+      
+      - name: Extract release notes from changelog
+        id: changelog
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_NO_V="${VERSION#v}"
+          # Extract the section for this version from CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            awk "/^## \[${VERSION_NO_V}\]/,/^## \[/" CHANGELOG.md | sed '$d' > release-notes.txt || \
+            awk "/^## \[${VERSION_NO_V}\]/,0" CHANGELOG.md > release-notes.txt
+          else
+            echo "Release ${{ github.ref_name }}" > release-notes.txt
+          fi
+      
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "${{ github.ref_name }}" \
-            --notes "Release ${{ github.ref_name }}"
+            --notes-file release-notes.txt

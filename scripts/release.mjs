@@ -74,13 +74,17 @@ function main() {
   updatePackageJson(newVersion);
   updateCliVersion(newVersion);
 
+  // Generate changelog
+  console.log('\nGenerating CHANGELOG.md...');
+  execSync(`node scripts/generate-changelog.mjs ${newVersion}`, { stdio: 'inherit', cwd: rootDir });
+
   // Build
   console.log('\nBuilding...');
   execSync('npm run build', { stdio: 'inherit', cwd: rootDir });
 
   // Commit changes
   console.log('\nCommitting changes...');
-  execSync(`git add package.json src/cli.ts`, { stdio: 'inherit', cwd: rootDir });
+  execSync(`git add package.json src/cli.ts CHANGELOG.md`, { stdio: 'inherit', cwd: rootDir });
   execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inherit', cwd: rootDir });
 
   // Create tag
