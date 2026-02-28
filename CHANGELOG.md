@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-02-28
+
+### Fixed
+- use IV=12 standard with full backward compat and migration script
+- remove changelog regeneration from release workflow
+
+### Changed
+- npm audit fix (rollup), release workflow, bump to 0.2.4
+
+- chore(deps-dev): bump @types/node from 25.2.3 to 25.3.0
+- chore(deps): bump @inquirer/prompts from 8.2.0 to 8.3.0
+
 ## [0.2.3] - 2026-02-11
 
 ### Added
