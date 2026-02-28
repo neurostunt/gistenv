@@ -133,6 +133,8 @@ export const fetchGistRevision = async (sha: string): Promise<GistEnvFile> => {
   return { content: envFile.content, filename: envFile.filename };
 };
 
+let decryptionFailureHintShown = false;
+
 export const parseEnvContent = (content: string, decrypt = true): EnvVariable[] => {
   const lines = content.split('\n');
   const variables: EnvVariable[] = [];
@@ -160,13 +162,18 @@ export const parseEnvContent = (content: string, decrypt = true): EnvVariable[] 
       // Decrypt if encryption key is available and value is encrypted
       if (decrypt && encryptionKey) {
         try {
-          // Only try to decrypt if value starts with ENC:
-          if (decryptedValue.startsWith('ENC:')) {
+          // Decrypt recursively in case of double-encryption
+          let maxIterations = 5;
+          while (decryptedValue.startsWith('ENC:') && maxIterations-- > 0) {
             decryptedValue = decryptValue(decryptedValue, encryptionKey);
           }
         } catch (error) {
-          // If decryption fails, log warning but keep encrypted value
-          console.warn(`Warning: Failed to decrypt value for ${key.trim()}: ${error instanceof Error ? error.message : String(error)}`);
+          if (!decryptionFailureHintShown) {
+            decryptionFailureHintShown = true;
+            const configPath = process.env.GISTENV_CONFIG_PATH || '.gistenv';
+            console.warn('\x1b[33mWarning: Decryption failed (wrong key or corrupted data). Values will remain encrypted.\x1b[0m');
+            console.warn(`\x1b[33mHint: Ensure GISTENV_ENCRYPTION_KEY in ${configPath} exactly matches the key used when encrypting.\x1b[0m`);
+          }
           // Keep original encrypted value
         }
       }

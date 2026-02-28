@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 12; // 96-bit nonce as per NIST SP 800-38D for AES-GCM
+const IV_LENGTH = 12;
 const SALT_LENGTH = 64;
 const TAG_LENGTH = 16; // 128-bit authentication tag
 const KEY_LENGTH = 32; // 256-bit key
@@ -22,6 +22,8 @@ function deriveKey(password: string, salt: Buffer): Buffer {
  */
 export function encryptValue(value: string, encryptionKey: string): string {
   if (!value) return value;
+  // Already encrypted, skip
+  if (value.startsWith(ENCRYPTION_PREFIX)) return value;
   
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -46,36 +48,35 @@ export function encryptValue(value: string, encryptionKey: string): string {
  * Decrypts a value that was encrypted with encryptValue
  * Returns original value or throws if decryption fails
  */
+function tryDecrypt(encoded: string, encryptionKey: string, ivLength: number): string {
+  const combined = Buffer.from(encoded, 'base64');
+  const salt = combined.subarray(0, SALT_LENGTH);
+  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + ivLength);
+  const tag = combined.subarray(SALT_LENGTH + ivLength, SALT_LENGTH + ivLength + TAG_LENGTH);
+  const encrypted = combined.subarray(SALT_LENGTH + ivLength + TAG_LENGTH);
+  const key = deriveKey(encryptionKey, salt);
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+}
+
 export function decryptValue(encryptedValue: string, encryptionKey: string): string {
   if (!encryptedValue.startsWith(ENCRYPTION_PREFIX)) {
-    // Not encrypted, return as-is (backward compatibility)
     return encryptedValue;
   }
   
-  try {
-    const encoded = encryptedValue.slice(ENCRYPTION_PREFIX.length);
-    const combined = Buffer.from(encoded, 'base64');
-    
-    // Extract: salt:iv:tag:encrypted
-    const salt = combined.subarray(0, SALT_LENGTH);
-    const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-    const tag = combined.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
-    const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
-    
-    const key = deriveKey(encryptionKey, salt);
-    
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(tag);
-    
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final()
-    ]);
-    
-    return decrypted.toString('utf8');
-  } catch (error) {
-    throw new Error(`Failed to decrypt value: ${error instanceof Error ? error.message : String(error)}`);
+  const encoded = encryptedValue.slice(ENCRYPTION_PREFIX.length);
+  
+  // Try both IV lengths to handle legacy data (IV=16 was used before IV=12 standard)
+  for (const ivLen of [...new Set([IV_LENGTH, 16, 12])]) {
+    try {
+      return tryDecrypt(encoded, encryptionKey, ivLen);
+    } catch {
+      // try next
+    }
   }
+  
+  throw new Error(`Failed to decrypt value: wrong key or corrupted data`);
 }
 
 /**

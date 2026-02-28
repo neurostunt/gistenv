@@ -3,22 +3,30 @@
 import fs from 'fs';
 import path from 'path';
 
-// Minimal .env loader for .gistenv (cwd, then HOME; or GISTENV_FILE path)
-function loadDotEnvFile() {
+// Resolve which .gistenv file to load (cwd, then HOME; or GISTENV_FILE path)
+function resolveGistenvPath(): string {
   const explicit = process.env.GISTENV_FILE;
   const localEnvPath = path.resolve(process.cwd(), '.gistenv');
   const homeEnvPath = path.resolve(process.env.HOME || process.env.USERPROFILE || '', '.gistenv');
-  let envPath = '';
   if (explicit && fs.existsSync(path.resolve(process.cwd(), explicit))) {
-    envPath = path.resolve(process.cwd(), explicit);
-  } else if (explicit && fs.existsSync(explicit)) {
-    envPath = explicit;
-  } else if (fs.existsSync(localEnvPath)) {
-    envPath = localEnvPath;
-  } else if (fs.existsSync(homeEnvPath)) {
-    envPath = homeEnvPath;
+    return path.resolve(process.cwd(), explicit);
   }
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+  if (fs.existsSync(localEnvPath)) {
+    return localEnvPath;
+  }
+  if (fs.existsSync(homeEnvPath)) {
+    return homeEnvPath;
+  }
+  return '';
+}
+
+function loadDotEnvFile() {
+  const envPath = resolveGistenvPath();
   if (envPath) {
+    process.env.GISTENV_CONFIG_PATH = envPath; // so gist can show which config was used
     const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
@@ -26,8 +34,12 @@ function loadDotEnvFile() {
       const eqIdx = trimmed.indexOf('=');
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
-      const value = trimmed.slice(eqIdx + 1).trim();
-      if (!(key in process.env)) {
+      let value = trimmed.slice(eqIdx + 1).trim();
+      // Strip surrounding single/double quotes so GISTENV_ENCRYPTION_KEY="key" works
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (!process.env[key]) {
         process.env[key] = value;
       }
     }
