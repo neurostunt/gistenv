@@ -93,7 +93,7 @@ function main() {
 
   // Push with tags
   console.log('\nPushing to remote...');
-  execSync('git push', { stdio: 'inherit', cwd: rootDir });
+  execSync('git push -u origin HEAD', { stdio: 'inherit', cwd: rootDir });
   execSync('git push --tags', { stdio: 'inherit', cwd: rootDir });
 
   console.log(`\n✓ Release ${tagName} completed!`);
