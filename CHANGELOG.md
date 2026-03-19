@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-03-19
+
+### Fixed
+- use IV=12 standard with full backward compat and migration script
+
+### Documentation
+- add Cursor AI acknowledgment to README
+
+### Changed
+- test release
+- bump version to 0.2.5
+
+- chore(deps-dev): bump @types/node from 25.3.0 to 25.5.0
+- chore(deps-dev): bump vitest from 4.0.18 to 4.1.0
+- chore(deps): bump @inquirer/prompts from 8.3.0 to 8.3.2
+
 ## [0.2.5] - 2026-02-28
 
 ### Fixed
