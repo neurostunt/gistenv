@@ -66,4 +66,5 @@ npm test         # run tests
 - [x] GitHub Actions guide: `GITHUB_ACTIONS_GUIDE.md` with examples for multiple environments.
 - [x] History command: `history [section]` shows Gist commit history, optionally filtered by section. Uses GitHub Gist API `/gists/{id}/commits` endpoint.
 - [x] Git hooks: pre-commit runs build, pre-push runs tests (using Husky v9).
+- [ ] **PR #24** (branch `chore/typescript-6`): consolidates Dependabot PRs; bumps vitest, inquirer, `@types/node`, TypeScript 6. `tsconfig` adds `"types": ["node"]` for TS6. Merge when ready; then close #16 #20–#23.
 - Use README.md for user docs, TESTING.md for manual testing.
