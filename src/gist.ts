@@ -48,9 +48,44 @@ export interface GistCommit {
   committed_at: string;
 }
 
+/**
+ * Real GitHub Gist id is 32 hex chars. Unit tests use slugs like `test-gist-id` — if stripping
+ * non-hex would not yield 32 chars, keep ASCII only (0–127) so mock ids still work and Unicode
+ * (e.g. U+2026) never reaches fetch().
+ */
+function normalizeGistId(id: string | undefined): string {
+  if (!id) return '';
+  const s0 = id.replace(/^\uFEFF/g, '').replace(/\u2026/g, '').trim();
+  const hexOnly = s0.replace(/[^0-9a-f]/gi, '');
+  if (hexOnly.length === 32) {
+    return hexOnly.toLowerCase();
+  }
+  return s0
+    .split('')
+    .filter((ch) => ch.charCodeAt(0) < 128)
+    .join('');
+}
+
+/**
+ * GitHub tokens are ASCII. Non-ASCII in env (e.g. … at index 10 in `token ghp_…` after `ghp_`) breaks undici's ByteString.
+ */
+function normalizeToken(token: string | undefined): string | undefined {
+  if (token === undefined) return undefined;
+  const t = token
+    .replace(/^\uFEFF/g, '')
+    .split('')
+    .filter((ch) => {
+      const c = ch.charCodeAt(0);
+      return c >= 0x20 && c <= 0x7e;
+    })
+    .join('')
+    .trim();
+  return t || undefined;
+}
+
 function getAuth(): { gistId: string; githubToken?: string } {
-  const gistId = process.env.GISTENV_GIST_ID || process.env.GIST_ID;
-  const githubToken = process.env.GISTENV_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+  const gistId = normalizeGistId(process.env.GISTENV_GIST_ID || process.env.GIST_ID);
+  const githubToken = normalizeToken(process.env.GISTENV_GITHUB_TOKEN || process.env.GITHUB_TOKEN);
   if (!gistId) {
     const cwd = process.cwd();
     const home = process.env.HOME || process.env.USERPROFILE || '~';

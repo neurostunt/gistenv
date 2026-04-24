@@ -3,6 +3,7 @@ import {
   parseEnvContent,
   encryptEnvContent,
   removeSectionFromContent,
+  fetchGist,
   fetchGistHistory,
   fetchGistRevision,
 } from '../src/gist';
@@ -340,6 +341,23 @@ API_KEY=staging_key`;
 
       expect(result).not.toContain('# [Production]');
       expect(result).toContain('# [Staging]');
+    });
+  });
+
+  describe('fetchGist', () => {
+    it('strips U+2026 (horizontal ellipsis) from Gist id in request URL', async () => {
+      process.env.GISTENV_GIST_ID = '0'.repeat(10) + '\u2026' + '0'.repeat(22);
+      process.env.GISTENV_GITHUB_TOKEN = 'ghp_' + '0'.repeat(36);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as Response);
+
+      await expect(fetchGist()).rejects.toThrow();
+      const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(url).not.toContain('\u2026');
+      expect(url).toBe('https://api.github.com/gists/' + '0'.repeat(32));
     });
   });
 

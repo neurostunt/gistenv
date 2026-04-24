@@ -7,13 +7,15 @@ Use this file for project context and architectural decisions. Update it after s
 **gistenv** — CLI to sync env vars with a single GitHub Gist. **Upload**: project `.env-example` (or `.env.example`) → new section in Gist. **Download**: one section from Gist → local `.env`. Sections are `# [Name]` blocks.
 
 - **Stack:** Node.js, TypeScript (ES2020, NodeNext), Commander, Inquirer.
-- **Entry:** `src/cli.ts` (bin: `gistenv` → `dist/cli.js`).
+- **Entry:** `src/cli.ts` loads config then `program.parse()`; Commander setup lives in `src/cli-commands.ts` (bin: `gistenv` → `dist/cli.js`).
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `src/cli.ts` | Loads `.gistenv` first; commands: `sections`, `list`, `download`, `upload`, `delete`, `encrypt`, `history`. |
+| `src/cli.ts` | Loads `.gistenv` via `gistenv-loader`, then `program.parse(process.argv)`. |
+| `src/gistenv-loader.ts` | `resolveGistenvPath()` / `loadGistenvIntoProcess()` (also used by E2E so Vitest matches CLI). |
+| `src/cli-commands.ts` | Commander `program` and actions: `sections`, `list`, `download`, `upload`, `delete`, `encrypt`, `history`. |
 | `src/gist.ts` | `fetchGist()` → `{ content, filename }`; `updateGist(filename, content)` (PATCH); `parseEnvContent()` for `# [Section]` + KEY=VALUE; `encryptEnvContent()` for encryption; `fetchGistHistory()` for commit history; `fetchGistRevision(sha)` for specific revision. |
 | `src/env.ts` | `loadEnvFile()`, `writeEnvFile(vars, path, 'append'|'replace')`. |
 | `src/crypto.ts` | `encryptValue()`, `decryptValue()` using AES-256-GCM; `getEncryptionKey()`, `isEncryptionAvailable()`. |
@@ -67,4 +69,6 @@ npm test         # run tests
 - [x] History command: `history [section]` shows Gist commit history, optionally filtered by section. Uses GitHub Gist API `/gists/{id}/commits` endpoint.
 - [x] Git hooks: pre-commit runs build, pre-push runs tests (using Husky v9).
 - [x] **#24** (merged): consolidated Dependabot work; TypeScript 6, vitest, inquirer, `@types/node` bumps. `tsconfig` includes `"types": ["node"]` for TS6.
+- [x] CLI tests: `tests/cli.test.ts` — non-interactive `download` (`-o`, `-s`, `-m` append/replace) and `sections` with `fetchGist` mocked; uses exported `program` from `cli-commands.ts` and `parseAsync(..., { from: 'user' })`.
+- [x] E2E (manual only): `npm run test:e2e` with `GISTENV_E2E=1` and Gist ID + token — `tests/e2e/gistenv-api.e2e.test.ts` (`vitest.e2e.config.ts`); default `npm test` excludes `tests/e2e/**`.
 - Use README.md for user docs, TESTING.md for manual testing.

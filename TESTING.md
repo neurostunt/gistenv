@@ -30,3 +30,14 @@
 ## Verify
 
 After download: `cat .env`. After upload: open the Gist in the browser and confirm the new `# [SectionName]` block.
+
+## Automated E2E (optional, manual)
+
+Live calls to the GitHub API and the built CLI (`dist/cli.js`). Not part of the default `npm test` run.
+
+1. Build: `npm run build`
+2. Set `GISTENV_E2E=1`. Provide credentials the same way as for the CLI: a `.gistenv` in the project or home, **or** `GISTENV_GIST_ID` / `GIST_ID` and `GISTENV_GITHUB_TOKEN` / `GITHUB_TOKEN` in the environment. The E2E file loads `.gistenv` so it matches the CLI. Use the real Gist id and token — do not use the Unicode `…` character as a placeholder (that breaks Node’s `fetch` headers; real ids/tokens are ASCII).
+3. The Gist should include at least one `# [SectionName]` block so the `download` check can run.
+4. Run: `GISTENV_E2E=1 npm run test:e2e`
+
+This executes `tests/e2e/gistenv-api.e2e.test.ts` only (see `vitest.e2e.config.ts`).

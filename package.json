@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:e2e": "npm run build && vitest run --config vitest.e2e.config.ts",
     "security": "npm audit",
     "prepublishOnly": "npm run build",
     "release": "node scripts/release.mjs",
