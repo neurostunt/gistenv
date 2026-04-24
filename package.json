@@ -45,15 +45,15 @@
     "url": "https://github.com/neurostunt/gistenv/issues"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.2.0",
+    "@inquirer/prompts": "^8.4.1",
     "commander": "^14.0.3"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
-    "@types/node": "^25",
-    "@vitest/ui": "^4.0.18",
+    "@types/node": "^25.5.2",
+    "@vitest/ui": "^4.1.3",
     "husky": "^9.1.7",
     "typescript": "^5.3.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.3"
   }
 }
