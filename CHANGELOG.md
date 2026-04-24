@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.7] - 2026-04-24
+
+### Fixed
+- set upstream when pushing release branch
+
+### Documentation
+- mark #24 merged in claude.md
+- note PR #24 in claude.md
+- add Cursor AI acknowledgment to README
+
+### Changed
+- bump version to 0.2.6
+- test release
+
+- test: CLI + optional E2E, split entry, fix history + API env
+- chore(deps-dev): bump TypeScript to 6.0.2
+- chore(deps): bump vitest, @vitest/ui, inquirer, @types/node
+- chore(deps-dev): bump @types/node from 25.3.0 to 25.5.0
+- chore(deps-dev): bump vitest from 4.0.18 to 4.1.0
+- chore(deps): bump @inquirer/prompts from 8.3.0 to 8.3.2
+
 ## [0.2.6] - 2026-03-19
 
 ### Fixed
