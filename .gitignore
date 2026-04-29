@@ -35,3 +35,14 @@ Thumbs.db
 
 # Comparison document (not for commit)
 COMPARISON.md
+
+# Vercel (cursor-agent-workflow — local project link; do not commit)
+.vercel
+
+# Claude & Cursor (IDE/agent workflow — local or machine-specific; do not commit)
+.cursor/
+.claude/
+AGENTS.md
+claude.md
+CLAUDE.md
+claude.md.*
