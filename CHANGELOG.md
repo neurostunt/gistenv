@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.8] - 2026-05-16
+
+### Fixed
+- align release script with cli-commands and changelog baseline
+
+### Documentation
+- add deployment guide
+
+- chore(deps): bump @inquirer/prompts from 8.4.2 to 8.4.3
+- chore(deps-dev): bump vitest from 4.1.5 to 4.1.6
+- chore(deps-dev): bump @vitest/ui from 4.1.5 to 4.1.6
+- chore(deps-dev): bump @types/node from 25.6.0 to 25.7.0
+- stop tracking claude.md
+
 ## [0.2.7] - 2026-04-24
 
 ### Fixed
