@@ -15,7 +15,7 @@ function getLatestTag() {
       .trim()
       .split('\n')
       .filter(t => t.startsWith('v'));
-    return tags.length > 1 ? tags[1] : null; // Second tag (previous one)
+    return tags.length > 0 ? tags[0] : null;
   } catch {
     return null;
   }
@@ -121,12 +121,10 @@ function main() {
   }
   const changelogPath = path.join(rootDir, 'CHANGELOG.md');
 
-  // Get previous tag
-  const previousTag = getLatestTag();
-  console.log(`Previous tag: ${previousTag || 'none'}`);
+  const lastReleaseTag = getLatestTag();
+  console.log(`Latest release tag (changelog baseline): ${lastReleaseTag || 'none'}`);
 
-  // Generate new changelog entry
-  const newEntry = generateChangelog(newVersion, previousTag);
+  const newEntry = generateChangelog(newVersion, lastReleaseTag);
 
   // Read existing changelog or create new one
   let existingContent = '';

@@ -32,11 +32,11 @@ function updatePackageJson(newVersion) {
 }
 
 function updateCliVersion(newVersion) {
-  const cliPath = path.join(rootDir, 'src', 'cli.ts');
+  const cliPath = path.join(rootDir, 'src', 'cli-commands.ts');
   let content = fs.readFileSync(cliPath, 'utf8');
   content = content.replace(/\.version\(['"]\d+\.\d+\.\d+['"]\)/, `.version('${newVersion}')`);
   fs.writeFileSync(cliPath, content);
-  console.log(`✓ Updated src/cli.ts to version ${newVersion}`);
+  console.log(`✓ Updated src/cli-commands.ts to version ${newVersion}`);
 }
 
 function main() {
@@ -74,6 +74,8 @@ function main() {
   updatePackageJson(newVersion);
   updateCliVersion(newVersion);
 
+  execSync('npm install --package-lock-only', { stdio: 'inherit', cwd: rootDir });
+
   // Generate changelog
   console.log('\nGenerating CHANGELOG.md...');
   execSync(`node scripts/generate-changelog.mjs ${newVersion}`, { stdio: 'inherit', cwd: rootDir });
@@ -84,7 +86,7 @@ function main() {
 
   // Commit changes
   console.log('\nCommitting changes...');
-  execSync(`git add package.json src/cli.ts CHANGELOG.md`, { stdio: 'inherit', cwd: rootDir });
+  execSync(`git add package.json package-lock.json src/cli-commands.ts CHANGELOG.md`, { stdio: 'inherit', cwd: rootDir });
   execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inherit', cwd: rootDir });
 
   // Create tag
