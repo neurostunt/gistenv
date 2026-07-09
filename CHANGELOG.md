@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.9] - 2026-07-09
+
+- chore(deps): bump @inquirer/prompts from 8.4.3 to 8.5.2 (#36)
+- chore(deps-dev): bump vitest from 4.1.6 to 4.1.8 (#35)
+- chore(deps): bump commander from 14.0.3 to 15.0.0 (#34)
+- chore(deps-dev): bump @vitest/ui from 4.1.6 to 4.1.8 (#33)
+- chore(deps-dev): bump @types/node from 25.7.0 to 25.9.1 (#31)
+
 ## [0.2.8] - 2026-05-16
 
 ### Fixed
