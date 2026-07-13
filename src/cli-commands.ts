@@ -33,6 +33,11 @@ function color(text: string, code: string) {
   return code + text + colors.reset;
 }
 
+function fail(message: string): void {
+  console.error(color(`Error: ${message}`, colors.redBright));
+  process.exitCode = 1;
+}
+
 const program = new Command();
 
 const DEFAULT_UPLOAD_FILE = '.env';
@@ -66,7 +71,7 @@ function defineSectionsCommand() {
         console.log(color('\nAvailable sections:', colors.whiteBright));
         sectionNames.forEach(s => console.log(color('- ' + s, colors.cyanBright)));
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -89,7 +94,7 @@ function defineListCommand() {
           console.log(color(v.key, colors.greenBright) + ' = ' + color(v.value, colors.whiteBright));
         });
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -120,7 +125,7 @@ function defineDownloadCommand() {
         if (opts.section) {
           selectedSection = opts.section as string;
           if (!sectionNames.includes(selectedSection)) {
-            console.error(color(`Error: Section "${selectedSection}" not found. Available sections: ${sectionNames.join(', ')}`, colors.redBright));
+            fail(`Section "${selectedSection}" not found. Available sections: ${sectionNames.join(', ')}`);
             return;
           }
           mode = (opts.mode === 'append' || opts.mode === 'replace') ? opts.mode : 'replace';
@@ -140,13 +145,13 @@ function defineDownloadCommand() {
         }
 
         if (!selectedSection) {
-          console.error(color('Error: No section selected', colors.redBright));
+          fail('No section selected');
           return;
         }
         const sectionVariables = allVariables.filter(v => v.section === selectedSection);
 
         if (sectionVariables.length === 0) {
-          console.error(color(`Error: No variables found in section "${selectedSection}"`, colors.redBright));
+          fail(`No variables found in section "${selectedSection}"`);
           console.log(color(`Available sections: ${sectionNames.join(', ')}`, colors.yellowBright));
           console.log(color(`Total variables found: ${allVariables.length}`, colors.yellowBright));
           return;
@@ -164,7 +169,7 @@ function defineDownloadCommand() {
         writeEnvFile(sectionVariables, outputFile, mode);
         console.log(color(`✓ Section "${selectedSection}" written to ${outputFile}`, colors.greenBright));
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -172,16 +177,18 @@ function defineDownloadCommand() {
 function defineUploadCommand() {
   program
     .command('upload')
-    .description('Upload .env to the Gist as a new section')
+    .description('Upload .env to the Gist as a section (upserts if the section already exists)')
     .argument('[file]', 'Path to env file (default: .env)')
-    .action(async (fileArg?: string) => {
+    .option('-s, --section <name>', 'Section name (non-interactive mode, for CI/CD)')
+    .action(async function(fileArg?: string) {
       try {
+        const opts = this.opts();
         const cwd = process.cwd();
         const filePath = fileArg
           ? path.resolve(cwd, fileArg)
           : path.resolve(cwd, DEFAULT_UPLOAD_FILE);
         if (!fs.existsSync(filePath)) {
-          console.error(color(`File not found: ${filePath}`, colors.redBright));
+          fail(`File not found: ${filePath}`);
           return;
         }
         let fileContent = fs.readFileSync(filePath, 'utf-8').trim();
@@ -193,16 +200,34 @@ function defineUploadCommand() {
         }
 
         const defaultSection = path.basename(filePath).replace(/^\.env-?/, '') || 'Example';
-        const sectionName = await input({
-          message: color('Section name (e.g. Production, Staging):', colors.whiteBright),
-          default: defaultSection
-        });
+        let sectionName: string;
+        if (opts.section) {
+          sectionName = opts.section as string;
+        } else {
+          sectionName = await input({
+            message: color('Section name (e.g. Production, Staging):', colors.whiteBright),
+            default: defaultSection
+          });
+        }
+
         const { content, filename } = await fetchGist();
-        const newContent = content.trimEnd() + '\n\n# [' + sectionName + ']\n' + fileContent + '\n';
+        const existingSections = Array.from(
+          new Set(parseEnvContent(content, false).map(v => v.section).filter(Boolean))
+        ) as string[];
+        const replacing = existingSections.includes(sectionName);
+        const baseContent = replacing ? removeSectionFromContent(content, sectionName) : content;
+        const newContent = baseContent.trimEnd() + '\n\n# [' + sectionName + ']\n' + fileContent + '\n';
         await updateGist(filename, newContent);
-        console.log(color(`✓ Section "${sectionName}" added to Gist`, colors.greenBright));
+        console.log(
+          color(
+            replacing
+              ? `✓ Section "${sectionName}" updated in Gist`
+              : `✓ Section "${sectionName}" added to Gist`,
+            colors.greenBright
+          )
+        );
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -228,7 +253,7 @@ function defineDeleteCommand() {
         await updateGist(filename, newContent);
         console.log(color(`✓ Section "${selectedSection}" deleted from Gist`, colors.greenBright));
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -259,7 +284,7 @@ function defineHistoryCommand() {
           const sectionNames = Array.from(new Set(allVariables.map(v => v.section).filter(Boolean))) as string[];
 
           if (!sectionNames.includes(sectionArg)) {
-            console.error(color(`Error: Section "${sectionArg}" not found. Available sections: ${sectionNames.join(', ')}`, colors.redBright));
+            fail(`Section "${sectionArg}" not found. Available sections: ${sectionNames.join(', ')}`);
             return;
           }
 
@@ -310,7 +335,7 @@ function defineHistoryCommand() {
         console.log(color('─'.repeat(80), colors.cyanBright));
         console.log(color(`Showing ${filteredCommits.length} of ${commits.length} total commits`, colors.cyanBright));
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }
@@ -324,7 +349,7 @@ function defineEncryptCommand() {
     .action(async (fileArg?: string, opts?: { output?: string }) => {
       try {
         if (!isEncryptionAvailable()) {
-          console.error(color('Error: GISTENV_ENCRYPTION_KEY not set or too short (min 16 chars)', colors.redBright));
+          fail('GISTENV_ENCRYPTION_KEY not set or too short (min 16 chars)');
           console.error(color('Add GISTENV_ENCRYPTION_KEY to your .gistenv file', colors.yellowBright));
           return;
         }
@@ -335,7 +360,7 @@ function defineEncryptCommand() {
           const filePath = path.resolve(cwd, fileArg);
 
           if (!fs.existsSync(filePath)) {
-            console.error(color(`File not found: ${filePath}`, colors.redBright));
+            fail(`File not found: ${filePath}`);
             return;
           }
 
@@ -381,7 +406,7 @@ function defineEncryptCommand() {
         console.log(color('✓ All values encrypted and Gist updated', colors.greenBright));
         console.log(color('ℹ Values are now encrypted. Use download to decrypt automatically.', colors.cyanBright));
       } catch (error) {
-        console.error(color(`Error: ${error instanceof Error ? error.message : String(error)}`, colors.redBright));
+        fail(error instanceof Error ? error.message : String(error));
       }
     });
 }

@@ -34,7 +34,7 @@ Token needs **gist** scope. Use a private Gist for secrets. Don't commit `.giste
 ## Commands
 
 ```bash
-npx gistenv upload      # add .env as new section (or: upload <path> for another file)
+npx gistenv upload      # add/upsert .env as a section (or: upload <path>)
 npx gistenv download    # pick section → write to .env
 npx gistenv delete      # pick section → remove it from Gist
 npx gistenv encrypt     # encrypt all values in existing Gist (requires GISTENV_ENCRYPTION_KEY)
@@ -43,6 +43,8 @@ npx gistenv list        # list all vars by section
 ```
 
 Download: `npx gistenv download -o .env.local` to write to another file.
+
+Non-interactive upload (agents / CI): `npx gistenv upload .env --section traktv` — upserts that section (replaces if it already exists).
 
 ## GitHub Actions Integration
 
@@ -70,10 +72,22 @@ Automatically download environment variables for different environments in your 
 2. Add `GISTENV_GIST_ID`, `GISTENV_GITHUB_TOKEN`, and optionally `GISTENV_ENCRYPTION_KEY`
 3. Use different `--section` values for different environments in your workflows
 
-**Non-interactive flags:**
+**Non-interactive flags (download):**
 - `--section <name>` - Specify section name (required for CI/CD, must match section name in Gist)
 - `--mode <append|replace>` - Write mode (default: replace)
 - `-o, --output <file>` - Output file path
+
+**Non-interactive flags (upload):**
+- `--section <name>` - Section name without prompting; upserts that section in the Gist
+
+```yaml
+- name: Upload env to Gist
+  env:
+    GISTENV_GIST_ID: ${{ secrets.GISTENV_GIST_ID }}
+    GISTENV_GITHUB_TOKEN: ${{ secrets.GISTENV_GITHUB_TOKEN }}
+    GISTENV_ENCRYPTION_KEY: ${{ secrets.GISTENV_ENCRYPTION_KEY }}
+  run: npx gistenv upload .env --section staging
+```
 
 See `GITHUB_ACTIONS_GUIDE.md` for complete examples with multiple environments.
 
