@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-07-13
+
+### Added
+- add non-interactive upload --section with upsert and exit codes
+
 ## [0.2.9] - 2026-07-09
 
 - chore(deps): bump @inquirer/prompts from 8.4.3 to 8.5.2 (#36)
