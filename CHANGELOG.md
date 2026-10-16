@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-10-16
+
+- chore(deps): batch Dependabot bumps and fix source-map-js audit (#52)
+- chore(deps): land remaining Dependabot updates (#46)
+- chore(deps-dev): batch remaining Dependabot upgrades (#42)
+- chore(deps-dev): bump @types/inquirer from 9.0.9 to 9.0.10 (#39)
+
 ## [0.3.0] - 2026-07-13
 
 ### Added

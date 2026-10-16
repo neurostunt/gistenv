@@ -45,7 +45,7 @@ const DEFAULT_UPLOAD_FILE = '.env';
 program
   .name('gistenv')
   .description('Upload .env to Gist as a section, or download a section into .env')
-  .version('0.3.0');
+  .version('0.3.1');
 
 defineSectionsCommand();
 defineListCommand();
