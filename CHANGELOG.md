@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2026-11-04
+
+- chore(deps-dev): bump @types/inquirer from 9.0.10 to 10.0.0 (#55)
+- chore(deps): bump @inquirer/prompts from 8.7.3 to 8.7.5 (#56)
+- chore(deps-dev): bump @types/node from 26.6.5 to 26.6.6 (#57)
+
 ## [0.3.1] - 2026-10-16
 
 - chore(deps): batch Dependabot bumps and fix source-map-js audit (#52)
